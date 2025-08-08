@@ -8,6 +8,14 @@ import {
   A0Message, BUMessage, CAMessage, CWMessage, CYMessage,
   DCMessage, ECMessage, FAMessage, HCMessage, NCMessage
 } from './messages/commands';
+import {
+  GCMessage, GSMessage, ECMessage as ECComponentMessage, FKMessage, KGMessage,
+  IKMessage, KEMessage, CKMessage, A6Message, EAMessage,
+  CVMessage, PVMessage, EDMessage, TDMessage, MIMessage,
+  GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
+  DCComponentMessage, DMMessage, DOMessage, GTMessage, VMessage,
+  KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
+} from './messages/extended-commands';
 
 /**
  * Thales HSM Simulator
@@ -317,16 +325,45 @@ export class HSM {
       const commandStr = commandCode.toString();
 
       switch (commandStr) {
+        // Original commands
         case 'A0': return new A0Message(commandData);
+        case 'A6': return new A6Message(commandData);
         case 'BU': return new BUMessage(commandData);
         case 'CA': return new CAMessage(commandData);
+        case 'CK': return new CKMessage(commandData);
+        case 'CV': return new CVMessage(commandData);
         case 'CW': return new CWMessage(commandData);
         case 'CY': return new CYMessage(commandData);
         case 'DC': return new DCMessage(commandData);
+        case 'DM': return new DMMessage(commandData);
+        case 'DO': return new DOMessage(commandData);
         case 'EC': return new ECMessage(commandData);
+        case 'ED': return new EDMessage(commandData);
+        case 'EA': return new EAMessage(commandData);
         case 'FA': return new FAMessage(commandData);
+        case 'FK': return new FKMessage(commandData);
+        case 'GC': return new GCMessage(commandData);
+        case 'GK': return new GKMessage(commandData);
+        case 'GS': return new GSMessage(commandData);
+        case 'GT': return new GTMessage(commandData);
         case 'HC': return new HCMessage(commandData);
+        case 'IK': return new IKMessage(commandData);
+        case 'KD': return new KDMessage(commandData);
+        case 'KE': return new KEMessage(commandData);
+        case 'KG': return new KGMessage(commandData);
+        case 'KK': return new KKMessage(commandData);
+        case 'KM': return new KMMessage(commandData);
+        case 'KN': return new KNMessage(commandData);
+        case 'KT': return new KTMessage(commandData);
+        case 'LK': return new LKMessage(commandData);
+        case 'LN': return new LNMessage(commandData);
+        case 'LO': return new LOMessage(commandData);
+        case 'MI': return new MIMessage(commandData);
         case 'NC': return new NCMessage(commandData);
+        case 'PV': return new PVMessage(commandData);
+        case 'TD': return new TDMessage(commandData);
+        case 'V': return new VMessage(commandData);
+        case 'VT': return new VTMessage(commandData);
         default:
           console.log(`\nUnsupported command: ${commandStr}`);
           return null;
@@ -347,18 +384,161 @@ export class HSM {
 
     switch (commandCode) {
       case 'A0': return this.generateKeyA0(request as A0Message);
+      case 'A6': return this.setKMCSequenceNumber(request as A6Message);
       case 'BU': return this.getKeyCheckValue(request as BUMessage);
+      case 'CK': return this.generateCheckValue(request as CKMessage);
+      case 'CV': return this.generateCardVerificationValue(request as CVMessage);
       case 'CW': return this.generateCvv(request as CWMessage);
       case 'CY': return this.verifyCvv(request as CYMessage);
       case 'DC': return this.verifyPin(request as DCMessage);
       case 'EC': return this.verifyPin(request as ECMessage);
+      case 'GC': return this.generateKeyComponent(request as GCMessage);
       case 'NC': return this.getDiagnosticsData();
+      case 'PV': return this.generateVisaPVV(request as PVMessage);
+      case 'VT': return this.viewLMKTable(request as VTMessage);
       default:
         const response = new OutgoingMessage(this.header);
         response.setResponseCode('ZZ');
         response.setErrorCode('00');
         return response;
     }
+  }
+
+  /**
+   * Handles key component generation for GC command
+   * @param request GC message to process
+   * @returns Response message with generated component
+   */
+  private generateKeyComponent(request: GCMessage): OutgoingMessage {
+    const response = new OutgoingMessage(this.header);
+    response.setResponseCode('GD');
+    response.setErrorCode('00');
+
+    // Generate random component
+    const component = CryptoUtils.generateRandomKey();
+    this.debugTrace(`Generated component: ${component.toString('hex')}`);
+    
+    // Encrypt under LMK
+    const encryptedComponent = CryptoUtils.encrypt3DES(this.lmk, component);
+    response.set('Clear Component', component);
+    response.set('Encrypted Component', encryptedComponent);
+    response.set('Component KCV', CryptoUtils.getKeyCheckValue(component, 6));
+
+    return response;
+  }
+
+  /**
+   * Handles KMC sequence number setting for A6 command
+   * @param request A6 message to process
+   * @returns Response message with confirmation
+   */
+  private setKMCSequenceNumber(request: A6Message): OutgoingMessage {
+    const response = new OutgoingMessage(this.header);
+    response.setResponseCode('A7');
+    response.setErrorCode('00');
+
+    const counter = request.get('Counter');
+    if (counter) {
+      this.debugTrace(`Set KMC sequence number: ${counter.toString('hex')}`);
+    }
+
+    return response;
+  }
+
+  /**
+   * Handles check value generation for CK command
+   * @param request CK message to process
+   * @returns Response message with check value
+   */
+  private generateCheckValue(request: CKMessage): OutgoingMessage {
+    const response = new OutgoingMessage(this.header);
+    response.setResponseCode('CL');
+    response.setErrorCode('00');
+
+    const encryptedKey = request.get('Encrypted Key');
+    if (encryptedKey) {
+      const checkValue = CryptoUtils.getKeyCheckValue(encryptedKey, 6);
+      response.set('Key Check Value', checkValue);
+    }
+
+    return response;
+  }
+
+  /**
+   * Handles card verification value generation for CV command
+   * @param request CV message to process
+   * @returns Response message with CVV
+   */
+  private generateCardVerificationValue(request: CVMessage): OutgoingMessage {
+    const response = new OutgoingMessage(this.header);
+    response.setResponseCode('DW');
+    response.setErrorCode('00');
+
+    const cvkA = request.get('CVK-A');
+    const pan = request.get('PAN');
+    const expiryDate = request.get('Expiry Date');
+    const serviceCode = request.get('Service Code');
+
+    if (cvkA && pan && expiryDate && serviceCode) {
+      // Decrypt CVK
+      const cvkData = cvkA[0] === 0x55 ? cvkA.subarray(1) : cvkA;
+      const clearCvk = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(cvkData.toString('hex'), 'hex'));
+      
+      const cvv = PinUtils.getVisaCVV(pan, expiryDate, serviceCode, clearCvk);
+      response.set('CVV', Buffer.from(cvv));
+    }
+
+    return response;
+  }
+
+  /**
+   * Handles VISA PVV generation for PV command
+   * @param request PV message to process
+   * @returns Response message with PVV
+   */
+  private generateVisaPVV(request: PVMessage): OutgoingMessage {
+    const response = new OutgoingMessage(this.header);
+    response.setResponseCode('QW');
+    response.setErrorCode('00');
+
+    const cvk = request.get('CVK');
+    const pan = request.get('PAN');
+    const offset = request.get('Offset');
+
+    if (cvk && pan && offset) {
+      // For PVV generation, we need a PIN - using offset as PIN for simulation
+      const pin = offset.toString('hex').substring(0, 4);
+      const pvki = Buffer.from('1'); // Default PVKI
+      
+      // Decrypt CVK to use as PVK
+      const cvkData = cvk[0] === 0x55 ? cvk.subarray(1) : cvk;
+      const clearCvk = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(cvkData.toString('hex'), 'hex'));
+      
+      // Use CVK as PVK pair (duplicate for 32-byte requirement)
+      const pvkPair = Buffer.concat([clearCvk, clearCvk]);
+      const pvv = PinUtils.getVisaPVV(pan, pvki, pin, pvkPair);
+      
+      response.set('PVV', pvv);
+    }
+
+    return response;
+  }
+
+  /**
+   * Handles LMK table viewing for VT command
+   * @param request VT message to process
+   * @returns Response message with LMK table
+   */
+  private viewLMKTable(request: VTMessage): OutgoingMessage {
+    const response = new OutgoingMessage(this.header);
+    response.setResponseCode('WU');
+    response.setErrorCode('00');
+
+    // Simulate LMK table with current LMK
+    const lmkTable = `00 L U ${CryptoUtils.getKeyCheckValue(this.lmk, 6).toString('hex')} Current LMK`;
+    response.set('LMK Table', Buffer.from(lmkTable));
+
+    return response;
   }
 
   /**

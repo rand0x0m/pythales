@@ -6,6 +6,7 @@ A modern TypeScript implementation of a Thales HSM (Hardware Security Module) si
 
 ### Supported HSM Commands
 
+#### Core Commands (Original 10)
 - **A0** - Generate a Key
 - **BU** - Generate a Key check value 
 - **CA** - Translate PIN from TPK to ZPK 
@@ -15,6 +16,46 @@ A modern TypeScript implementation of a Thales HSM (Hardware Security Module) si
 - **FA** - Translate a ZPK from ZMK to LMK
 - **HC** - Generate a TMK, TPK or PVK
 - **NC** - Diagnostics information
+
+#### Extended Commands (Additional 30)
+
+**Key Generation & Component Management (1-10)**
+- **GC** - Generate Key Component
+- **GS** - Generate Key & Write Components to Smartcards
+- **EC** - Encrypt Clear Component
+- **FK** - Form Key from Components
+- **KG** - Generate Key
+- **IK** - Import Key (Variant / Key-Block)
+- **KE** - Export Key
+- **CK** - Generate Check Value
+- **A6** - Set KMC Sequence Number
+- **EA** - Convert KEK ZMK → KEKr/KEKs
+
+**Card Verification Operations (11-15)**
+- **CV** - Generate Card Verification Value
+- **PV** - Generate VISA PIN Verification Value
+- **ED** - Encrypt Decimalisation Table
+- **TD** - Translate Decimalisation Table
+- **MI** - Generate MAC on IPB
+
+**LMK Management Commands (16-25)**
+- **GK** - Generate LMK Components
+- **LK** - Load LMK Components
+- **LO** - Load Old LMK
+- **LN** - Load New LMK
+- **VT** - View LMK Table
+- **DC** - Duplicate Component
+- **DM** - Delete/Zeroize LMK
+- **DO** - Delete from KCS
+- **GT** - Generate Test LMK
+- **V** - Verify LMK Store
+
+**KMD (KTK) Commands (26-30)**
+- **KM** - Generate KTK Components
+- **KN** - Install KTK
+- **KT** - List KTK Table
+- **KK** - Import Key under KTK
+- **KD** - Delete KTK
 
 ### Key Features
 
