@@ -2,6 +2,7 @@
 
 import { HSM } from './hsm';
 import { HSMConfig } from './types';
+import { Logger } from './utils/logger';
 
 /**
  * Displays help information for the HSM simulator CLI
@@ -17,6 +18,9 @@ function showHelp(name: string): void {
   console.log('  -s, --skip-parity\t\t\tSkip key parity checks');
   console.log('  -a, --approve-all\t\t\tApprove all requests');
   console.log('  --help\t\t\tShow this help message');
+  console.log('');
+  console.log('Environment Variables:');
+  console.log('  LOG_LEVEL\t\t\tSet logging level (error, warn, info, debug, trace)');
 }
 
 /**
@@ -37,7 +41,7 @@ function parseArgs(): HSMConfig {
       const portStr = arg.startsWith('--port=') ? arg.split('=')[1] : args[++i];
       const port = parseInt(portStr, 10);
       if (isNaN(port)) {
-        console.error(`Invalid TCP port: ${portStr}`);
+        console.error(`❌ Invalid TCP port: ${portStr}`);
         process.exit(1);
       }
       config.port = port;
@@ -52,7 +56,7 @@ function parseArgs(): HSMConfig {
     } else if (arg === '-a' || arg === '--approve-all') {
       config.approveAll = true;
     } else {
-      console.error(`Unknown option: ${arg}`);
+      console.error(`❌ Unknown option: ${arg}`);
       showHelp(process.argv[1]);
       process.exit(1);
     }
@@ -68,10 +72,15 @@ function parseArgs(): HSMConfig {
 function main(): void {
   try {
     const config = parseArgs();
+    
+    // Initialize logger early so we can use it for startup
+    Logger.initialize(config);
+    
     const hsm = new HSM(config);
     hsm.run();
   } catch (error) {
-    console.error(`Error: ${error}`);
+    // Use console.error here since logger might not be initialized
+    console.error(`❌ Fatal error: ${error}`);
     process.exit(1);
   }
 }

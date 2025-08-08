@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
+import { Logger } from './logger';
 
 /**
  * Cryptographic utility functions for HSM operations
@@ -42,6 +43,7 @@ export class CryptoUtils {
    * @returns Encrypted data buffer of the same length as input
    */
   static encrypt3DES(key: Buffer, data: Buffer): Buffer {
+    Logger.trace('3DES encryption', { keyLength: key.length, dataLength: data.length });
     const cipher = createCipheriv('des-ede3', key, null);
     cipher.setAutoPadding(false);
     return Buffer.concat([cipher.update(data), cipher.final()]);
@@ -58,6 +60,7 @@ export class CryptoUtils {
    * @returns Decrypted data buffer of the same length as input
    */
   static decrypt3DES(key: Buffer, data: Buffer): Buffer {
+    Logger.trace('3DES decryption', { keyLength: key.length, dataLength: data.length });
     const decipher = createDecipheriv('des-ede3', key, null);
     decipher.setAutoPadding(false);
     return Buffer.concat([decipher.update(data), decipher.final()]);
@@ -74,7 +77,10 @@ export class CryptoUtils {
    * @returns Cryptographically secure random key with proper odd parity applied
    */
   static generateRandomKey(length: number = 16): Buffer {
-    return this.modifyKeyParity(randomBytes(length));
+    Logger.trace('Generating random key', { length });
+    const key = this.modifyKeyParity(randomBytes(length));
+    Logger.trace('Random key generated', { length: key.length, hasValidParity: this.checkKeyParity(key) });
+    return key;
   }
 
   /**
@@ -88,6 +94,7 @@ export class CryptoUtils {
    * @returns New key buffer with odd parity applied to each byte
    */
   static modifyKeyParity(key: Buffer): Buffer {
+    Logger.trace('Modifying key parity', { keyLength: key.length });
     const result = Buffer.from(key);
     for (let i = 0; i < result.length; i++) {
       let byte = result[i];
@@ -97,6 +104,7 @@ export class CryptoUtils {
       }
       result[i] = (byte & 0xFE) | (parity ^ 1);
     }
+    Logger.trace('Key parity modified', { originalLength: key.length, resultLength: result.length });
     return result;
   }
 
@@ -111,6 +119,7 @@ export class CryptoUtils {
    * @returns true if all bytes have proper odd parity, false if any byte has even parity
    */
   static checkKeyParity(key: Buffer): boolean {
+    Logger.trace('Checking key parity', { keyLength: key.length });
     for (let i = 0; i < key.length; i++) {
       let byte = key[i];
       let parity = 0;
@@ -118,9 +127,11 @@ export class CryptoUtils {
         parity ^= (byte >> j) & 1;
       }
       if (parity !== 1) {
+        Logger.trace('Key parity check failed', { byteIndex: i, byte: byte.toString(16) });
         return false;
       }
     }
+    Logger.trace('Key parity check passed', { keyLength: key.length });
     return true;
   }
 
@@ -137,8 +148,11 @@ export class CryptoUtils {
    * @returns Key check value buffer for verification purposes
    */
   static getKeyCheckValue(key: Buffer, length: number = 6): Buffer {
+    Logger.trace('Generating key check value', { keyLength: key.length, kcvLength: length });
     const zeros = Buffer.alloc(8);
     const encrypted = this.encrypt3DES(key, zeros);
-    return encrypted.subarray(0, length);
+    const kcv = encrypted.subarray(0, length);
+    Logger.trace('Key check value generated', { kcvHex: kcv.toString('hex').toUpperCase() });
+    return kcv;
   }
 }

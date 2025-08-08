@@ -3,6 +3,7 @@ import { HSMConfig } from './types';
 import { CryptoUtils } from './utils/crypto';
 import { PinUtils } from './utils/pin';
 import { MessageUtils } from './utils/message';
+import { Logger } from './utils/logger';
 import { BaseMessage, OutgoingMessage } from './messages/base';
 import {
   A0Message, BUMessage, CAMessage, CWMessage, CYMessage,
@@ -50,6 +51,9 @@ export class HSM {
    * @param config Configuration options
    */
   constructor(config: HSMConfig = {}) {
+    // Initialize logger first
+    Logger.initialize(config);
+    
     this.header = config.header ? Buffer.from(config.header) : Buffer.alloc(0);
     this.lmk = config.key ? Buffer.from(config.key, 'hex') : Buffer.from('deafbeedeafbeedeafbeedeafbeedeaf', 'hex');
     this.debug = config.debug || false;
@@ -58,12 +62,22 @@ export class HSM {
     this.approveAll = config.approveAll || false;
 
     if (this.lmk.length !== 16) {
+      Logger.error('Invalid LMK length', { length: this.lmk.length, expected: 16 });
       throw new Error('LMK must be 16 bytes (32 hex characters)');
     }
 
     if (this.approveAll) {
-      console.log('\n\n\tHSM is forced to approve all the requests!\n');
+      Logger.warn('⚠️  HSM is configured to approve ALL requests - USE ONLY FOR TESTING!');
     }
+
+    Logger.debug('HSM instance created', {
+      headerLength: this.header.length,
+      lmkLength: this.lmk.length,
+      port: this.port,
+      debug: this.debug,
+      skipParity: this.skipParityCheck,
+      approveAll: this.approveAll
+    });
   }
 
   /**
@@ -72,12 +86,13 @@ export class HSM {
    */
   private initConnection(): void {
     try {
+      Logger.logServer('starting');
       this.server = net.createServer();
       this.server.listen(this.port, () => {
-        console.log(`Listening on port ${this.port}`);
+        Logger.logServer('listening', `port ${this.port}`);
       });
     } catch (error) {
-      console.error(`Error starting server: ${error}`);
+      Logger.logServer('error', `Failed to start server: ${error}`);
       process.exit(1);
     }
   }
@@ -88,7 +103,7 @@ export class HSM {
    */
   private debugTrace(data: string): void {
     if (this.debug) {
-      console.log(`\tDEBUG: ${data}\n`);
+      Logger.debug(`🔍 ${data}`);
     }
   }
 
@@ -99,12 +114,18 @@ export class HSM {
    */
   private checkKeyParity(key: Buffer): boolean {
     if (this.skipParityCheck) {
+      Logger.logValidation('Key parity', 'success', 'Skipped due to configuration');
       return true;
     }
 
     const keyData = key[0] === 0x55 ? key.subarray(1) : key; // Remove 'U' prefix if present
     const clearKey = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(keyData.toString('hex'), 'hex'));
-    return CryptoUtils.checkKeyParity(clearKey);
+    const isValid = CryptoUtils.checkKeyParity(clearKey);
+    
+    Logger.logValidation('Key parity', isValid ? 'success' : 'failure', 
+      `Key length: ${clearKey.length} bytes`);
+    
+    return isValid;
   }
 
   /**
@@ -116,6 +137,9 @@ export class HSM {
   private decryptPinblock(encryptedPinblock: Buffer, encryptedTerminalKey: Buffer): Buffer {
     const keyData = encryptedTerminalKey[0] === 0x55 ? 
       encryptedTerminalKey.subarray(1) : encryptedTerminalKey;
+    
+    Logger.logCrypto('PIN block decryption', 
+      `Using terminal key, PIN block length: ${encryptedPinblock.length}`);
     
     const clearTerminalKey = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(keyData.toString('hex'), 'hex'));
     const decryptedPinblock = CryptoUtils.decrypt3DES(clearTerminalKey, Buffer.from(encryptedPinblock.toString('hex'), 'hex'));
@@ -132,6 +156,8 @@ export class HSM {
     const response = new OutgoingMessage(this.header);
     const commandCode = request.getCommandCode().toString();
     const keyType = commandCode === 'DC' ? 'TPK' : 'ZPK';
+    
+    Logger.logCommandProcessing(commandCode, `PIN verification using ${keyType}`, request.fields);
 
     response.setResponseCode(commandCode === 'DC' ? 'DD' : 'ED');
 
@@ -139,6 +165,7 @@ export class HSM {
     const key = request.get(keyType);
     if (!key || !this.checkKeyParity(key)) {
       this.debugTrace(`${keyType} parity error`);
+      Logger.logValidation(`${keyType} parity`, 'failure', 'Key parity check failed');
       response.setErrorCode(this.approveAll ? '00' : '10');
       return response;
     }
@@ -146,12 +173,14 @@ export class HSM {
     const pvkPair = request.get('PVK Pair');
     if (!pvkPair || !this.checkKeyParity(pvkPair)) {
       this.debugTrace('PVK parity error');
+      Logger.logValidation('PVK parity', 'failure', 'PVK parity check failed');
       response.setErrorCode(this.approveAll ? '00' : '11');
       return response;
     }
 
     if (pvkPair.length !== 32) {
       this.debugTrace('PVK not double length');
+      Logger.logValidation('PVK length', 'failure', `Expected 32 bytes, got ${pvkPair.length}`);
       response.setErrorCode(this.approveAll ? '00' : '27');
       return response;
     }
@@ -160,24 +189,31 @@ export class HSM {
       const pinBlock = request.get('PIN block')!;
       const decryptedPinblock = this.decryptPinblock(pinBlock, key);
       this.debugTrace(`Decrypted pinblock: ${decryptedPinblock.toString('hex')}`);
+      Logger.logCrypto('PIN extraction', `Decrypted PIN block: ${decryptedPinblock.toString('hex')}`);
 
       const accountNumber = request.get('Account Number')!;
       const pin = PinUtils.getClearPin(decryptedPinblock, accountNumber);
+      Logger.debug(`🔢 Extracted PIN length: ${pin.length} digits`);
+      
       const pvki = request.get('PVKI')!;
       const expectedPvv = request.get('PVV')!;
       
       const calculatedPvv = PinUtils.getVisaPVV(accountNumber, pvki, pin.substring(0, 4), pvkPair);
+      Logger.debug(`🔍 PVV comparison - Expected: ${expectedPvv.toString()}, Calculated: ${calculatedPvv.toString()}`);
 
       if (calculatedPvv.equals(expectedPvv)) {
+        Logger.logValidation('PIN verification', 'success', 'PVV match');
         response.setErrorCode('00');
       } else {
         this.debugTrace(`PVV mismatch: ${calculatedPvv.toString()} != ${expectedPvv.toString()}`);
+        Logger.logValidation('PIN verification', 'failure', 'PVV mismatch');
         response.setErrorCode(this.approveAll ? '00' : '01');
       }
 
       return response;
     } catch (error) {
       this.debugTrace(`Error: ${error}`);
+      Logger.error('PIN verification error', { error: error.toString() });
       response.setErrorCode(this.approveAll ? '00' : '01');
       return response;
     }
@@ -190,17 +226,20 @@ export class HSM {
    */
   private verifyCvv(request: CYMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('CY', 'CVV verification', request.fields);
     response.setResponseCode('CZ');
 
     const cvk = request.get('CVK')!;
     if (!this.checkKeyParity(cvk)) {
       this.debugTrace('CVK parity error');
+      Logger.logValidation('CVK parity', 'failure', 'CVK parity check failed');
       response.setErrorCode('10');
       return response;
     }
 
     const cvkData = cvk[0] === 0x55 ? cvk.subarray(1) : cvk;
     const clearCvk = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(cvkData.toString('hex'), 'hex'));
+    Logger.logCrypto('CVK decryption', `CVK decrypted for CVV calculation`);
     
     const accountNumber = request.get('Primary Account Number')!;
     const expiryDate = request.get('Expiration Date')!;
@@ -208,11 +247,14 @@ export class HSM {
     
     const calculatedCvv = PinUtils.getVisaCVV(accountNumber, expiryDate, serviceCode, clearCvk);
     const providedCvv = request.get('CVV')!.toString();
+    Logger.debug(`🔍 CVV comparison - Provided: ${providedCvv}, Calculated: ${calculatedCvv}`);
 
     if (calculatedCvv === providedCvv) {
+      Logger.logValidation('CVV verification', 'success', 'CVV match');
       response.setErrorCode('00');
     } else {
       this.debugTrace(`CVV mismatch: ${calculatedCvv} != ${providedCvv}`);
+      Logger.logValidation('CVV verification', 'failure', 'CVV mismatch');
       response.setErrorCode(this.approveAll ? '00' : '01');
     }
 
@@ -226,23 +268,27 @@ export class HSM {
    */
   private generateCvv(request: CWMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('CW', 'CVV generation', request.fields);
     response.setResponseCode('CX');
 
     const cvk = request.get('CVK')!;
     if (!this.checkKeyParity(cvk)) {
       this.debugTrace('CVK parity error');
+      Logger.logValidation('CVK parity', 'failure', 'CVK parity check failed');
       response.setErrorCode(this.approveAll ? '00' : '10');
       return response;
     }
 
     const cvkData = cvk[0] === 0x55 ? cvk.subarray(1) : cvk;
     const clearCvk = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(cvkData.toString('hex'), 'hex'));
+    Logger.logCrypto('CVK decryption', `CVK decrypted for CVV generation`);
     
     const accountNumber = request.get('Primary Account Number')!;
     const expiryDate = request.get('Expiration Date')!;
     const serviceCode = request.get('Service Code')!;
     
     const cvv = PinUtils.getVisaCVV(accountNumber, expiryDate, serviceCode, clearCvk);
+    Logger.logKeyOperation('CVV generated', 'Card Verification Value', `CVV: ${cvv}`);
 
     response.setErrorCode('00');
     response.set('CVV', Buffer.from(cvv));
@@ -255,10 +301,14 @@ export class HSM {
    */
   private getDiagnosticsData(): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('NC', 'Diagnostics data request', {});
     response.setResponseCode('ND');
     response.setErrorCode('00');
     
     const checkValue = CryptoUtils.getKeyCheckValue(this.lmk, 16);
+    Logger.logKeyOperation('LMK check value calculated', 'Local Master Key', 
+      `KCV: ${checkValue.toString('hex').toUpperCase()}`);
+    
     response.set('LMK Check Value', checkValue);
     response.set('Firmware Version', Buffer.from(this.firmwareVersion));
     
@@ -272,12 +322,15 @@ export class HSM {
    */
   private getKeyCheckValue(request: BUMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('BU', 'Key check value generation', request.fields);
     response.setResponseCode('BV');
     response.setErrorCode('00');
 
     const key = request.get('Key')!;
     const keyData = key[0] === 0x55 ? key.subarray(1) : key;
     const checkValue = CryptoUtils.getKeyCheckValue(Buffer.from(keyData.toString('hex'), 'hex'), 16);
+    Logger.logKeyOperation('Key check value generated', 'Encrypted Key', 
+      `KCV: ${checkValue.toString('hex').toUpperCase()}`);
     
     response.set('Key Check Value', checkValue);
     return response;
@@ -290,17 +343,21 @@ export class HSM {
    */
   private generateKeyA0(request: A0Message): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('A0', 'Key generation', request.fields);
     response.setResponseCode('A1');
     response.setErrorCode('00');
 
     const newClearKey = CryptoUtils.generateRandomKey();
     this.debugTrace(`Generated key: ${newClearKey.toString('hex')}`);
+    Logger.logKeyOperation('Key generated', 'Random Key', 
+      `Length: ${newClearKey.length} bytes`);
     
     const newKeyUnderLmk = CryptoUtils.encrypt3DES(this.lmk, newClearKey);
     response.set('Key under LMK', Buffer.concat([Buffer.from('U'), Buffer.from(newKeyUnderLmk.toString('hex'), 'hex')]));
 
     const zmkTmk = request.get('ZMK/TMK');
     if (zmkTmk) {
+      Logger.logCrypto('Key export', 'Encrypting key under ZMK/TMK');
       const zmkData = zmkTmk.subarray(1, 33);
       const clearZmk = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(zmkData.toString('hex'), 'hex'));
       const newKeyUnderZmk = CryptoUtils.encrypt3DES(clearZmk, newClearKey);
@@ -321,6 +378,8 @@ export class HSM {
     try {
       const { commandCode, commandData } = MessageUtils.parseMessage(data, this.header);
       const commandStr = commandCode.toString();
+      
+      Logger.debug(`📨 Parsing command: ${commandStr}, Data length: ${commandData.length}`);
 
       switch (commandStr) {
         // Original commands
@@ -372,11 +431,11 @@ export class HSM {
         case 'KK': return new KKMessage(commandData);
         case 'KD': return new KDMessage(commandData);
         default:
-          console.log(`\nUnsupported command: ${commandStr}`);
+          Logger.warn(`❓ Unsupported command: ${commandStr}`);
           return null;
       }
     } catch (error) {
-      console.error(`Error parsing message: ${error}`);
+      Logger.error('Message parsing error', { error: error.toString() });
       return null;
     }
   }
@@ -388,6 +447,9 @@ export class HSM {
    */
   private getResponse(request: BaseMessage): OutgoingMessage {
     const commandCode = request.getCommandCode().toString();
+    const startTime = Date.now();
+    
+    Logger.debug(`🔄 Processing command: ${commandCode}`);
 
     switch (commandCode) {
       case 'A0': return this.generateKeyA0(request as A0Message);
@@ -405,6 +467,7 @@ export class HSM {
       case 'VT': return this.viewLMKTable(request as VTMessage);
       default:
         const response = new OutgoingMessage(this.header);
+        Logger.warn(`❓ Unhandled command in response generation: ${commandCode}`);
         response.setResponseCode('ZZ');
         response.setErrorCode('00');
         return response;
@@ -418,12 +481,15 @@ export class HSM {
    */
   private generateKeyComponent(request: GCMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('GC', 'Key component generation', request.fields);
     response.setResponseCode('GD');
     response.setErrorCode('00');
 
     // Generate random component
     const component = CryptoUtils.generateRandomKey();
     this.debugTrace(`Generated component: ${component.toString('hex')}`);
+    Logger.logKeyOperation('Component generated', 'Key Component', 
+      `Length: ${component.length} bytes`);
     
     // Encrypt under LMK
     const encryptedComponent = CryptoUtils.encrypt3DES(this.lmk, component);
@@ -441,12 +507,14 @@ export class HSM {
    */
   private setKMCSequenceNumber(request: A6Message): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('A6', 'Set KMC sequence number', request.fields);
     response.setResponseCode('A7');
     response.setErrorCode('00');
 
     const counter = request.get('Counter');
     if (counter) {
       this.debugTrace(`Set KMC sequence number: ${counter.toString('hex')}`);
+      Logger.info(`🔢 KMC sequence number set: ${counter.toString('hex').toUpperCase()}`);
     }
 
     return response;
@@ -459,12 +527,15 @@ export class HSM {
    */
   private generateCheckValue(request: CKMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('CK', 'Check value generation', request.fields);
     response.setResponseCode('CL');
     response.setErrorCode('00');
 
     const encryptedKey = request.get('Encrypted Key');
     if (encryptedKey) {
       const checkValue = CryptoUtils.getKeyCheckValue(encryptedKey, 6);
+      Logger.logKeyOperation('Check value generated', 'Encrypted Key', 
+        `KCV: ${checkValue.toString('hex').toUpperCase()}`);
       response.set('Key Check Value', checkValue);
     }
 
@@ -478,6 +549,7 @@ export class HSM {
    */
   private generateCardVerificationValue(request: CVMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('CV', 'Card verification value generation', request.fields);
     response.setResponseCode('DW');
     response.setErrorCode('00');
 
@@ -492,6 +564,8 @@ export class HSM {
       const clearCvk = CryptoUtils.decrypt3DES(this.lmk, Buffer.from(cvkData.toString('hex'), 'hex'));
       
       const cvv = PinUtils.getVisaCVV(pan, expiryDate, serviceCode, clearCvk);
+      Logger.logKeyOperation('CVV generated', 'Card Verification Value', 
+        `CVV: ${cvv}`);
       response.set('CVV', Buffer.from(cvv));
     }
 
@@ -505,6 +579,7 @@ export class HSM {
    */
   private generateVisaPVV(request: PVMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('PV', 'VISA PVV generation', request.fields);
     response.setResponseCode('QW');
     response.setErrorCode('00');
 
@@ -525,6 +600,8 @@ export class HSM {
       const pvkPair = Buffer.concat([clearCvk, clearCvk]);
       const pvv = PinUtils.getVisaPVV(pan, pvki, pin, pvkPair);
       
+      Logger.logKeyOperation('PVV generated', 'PIN Verification Value', 
+        `PVV: ${pvv.toString()}`);
       response.set('PVV', pvv);
     }
 
@@ -538,11 +615,13 @@ export class HSM {
    */
   private viewLMKTable(request: VTMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
+    Logger.logCommandProcessing('VT', 'View LMK table', request.fields);
     response.setResponseCode('WU');
     response.setErrorCode('00');
 
     // Simulate LMK table with current LMK
     const lmkTable = `00 L U ${CryptoUtils.getKeyCheckValue(this.lmk, 6).toString('hex')} Current LMK`;
+    Logger.info(`📋 LMK Table: ${lmkTable}`);
     response.set('LMK Table', Buffer.from(lmkTable));
 
     return response;
@@ -554,32 +633,56 @@ export class HSM {
    */
   private handleClient(socket: net.Socket): void {
     const clientName = `${socket.remoteAddress}:${socket.remotePort}`;
-    console.log(`Connected client: ${clientName}`);
+    Logger.logConnection(clientName, 'connected');
+    
+    let messageCount = 0;
 
     socket.on('data', (data: Buffer) => {
-      MessageUtils.trace(`<< received from ${clientName}:`, data);
+      messageCount++;
+      const startTime = Date.now();
+      
+      Logger.logTrace(`<< received from ${clientName}`, data, clientName);
 
       const request = this.parseMessage(data);
       if (!request) {
+        Logger.warn(`❌ Failed to parse message from ${clientName}, closing connection`);
         socket.end();
         return;
       }
 
-      console.log(request.trace());
+      const commandCode = request.getCommandCode().toString();
+      Logger.logCommand(clientName, commandCode, 'in', data.length);
+      
+      if (Logger.getInstance().level === 'debug' || Logger.getInstance().level === 'trace') {
+        Logger.debug(`📋 Command trace:\n${request.trace()}`);
+      }
+      
       const response = this.getResponse(request);
       const responseData = response.build();
+      const processingTime = Date.now() - startTime;
 
       socket.write(responseData);
-      MessageUtils.trace(`>> sent to ${clientName}:`, responseData);
-      console.log(response.trace());
+      
+      Logger.logCommand(clientName, commandCode, 'out', responseData.length, processingTime);
+      Logger.logTrace(`>> sent to ${clientName}`, responseData, clientName);
+      
+      if (Logger.getInstance().level === 'debug' || Logger.getInstance().level === 'trace') {
+        Logger.debug(`📋 Response trace:\n${response.trace()}`);
+      }
     });
 
     socket.on('close', () => {
-      console.log(`Client disconnected: ${clientName}`);
+      Logger.logConnection(clientName, 'disconnected');
+      Logger.info(`📊 Client ${clientName} processed ${messageCount} messages`);
     });
 
     socket.on('error', (error) => {
-      console.error(`Client error ${clientName}: ${error}`);
+      Logger.logConnection(clientName, 'error', error.toString());
+    });
+
+    socket.on('timeout', () => {
+      Logger.logConnection(clientName, 'timeout', 'Socket timeout');
+      socket.destroy();
     });
   }
 
@@ -588,13 +691,8 @@ export class HSM {
    * @returns Multi-line info string
    */
   public info(): string {
-    let dump = '';
-    dump += `LMK: ${this.lmk.toString('hex').toUpperCase()}\n`;
-    dump += `Firmware version: ${this.firmwareVersion}\n`;
-    if (this.header.length > 0) {
-      dump += `Message header: ${this.header.toString()}\n`;
-    }
-    return dump;
+    // Info is now logged via Logger.logStartup()
+    return '';
   }
 
   /**
@@ -603,15 +701,43 @@ export class HSM {
    */
   public run(): void {
     this.initConnection();
-    console.log(this.info());
+    
+    // Log startup information
+    Logger.logStartup({
+      port: this.port,
+      debug: this.debug,
+      skipParity: this.skipParityCheck,
+      approveAll: this.approveAll,
+      header: this.header.length > 0 ? this.header.toString() : undefined,
+      key: this.lmk.toString('hex')
+    });
 
     this.server!.on('connection', (socket) => {
       this.handleClient(socket);
     });
 
+    this.server!.on('error', (error) => {
+      Logger.logServer('error', error.toString());
+    });
+
     process.on('SIGINT', () => {
-      console.log('\nShutting down HSM simulator...');
+      Logger.logServer('stopping');
       this.server?.close(() => {
+        Logger.logServer('stopped');
+        process.exit(0);
+      });
+      
+      // Force exit after 5 seconds if graceful shutdown fails
+      setTimeout(() => {
+        Logger.warn('⚠️  Forced shutdown after timeout');
+        process.exit(1);
+      }, 5000);
+    });
+
+    process.on('SIGTERM', () => {
+      Logger.logServer('stopping');
+      this.server?.close(() => {
+        Logger.logServer('stopped');
         process.exit(0);
       });
     });

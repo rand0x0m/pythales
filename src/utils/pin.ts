@@ -1,4 +1,5 @@
 import { CryptoUtils } from './crypto';
+import { Logger } from './logger';
 
 /**
  * PIN and PVV utility functions for payment card operations
@@ -28,22 +29,31 @@ export class PinUtils {
    * @throws Error if PIN length is invalid (not 4-12) or PIN contains non-numeric characters
    */
   static getClearPin(pinblock: Buffer, accountNumber: Buffer): string {
+    Logger.trace('Extracting clear PIN', { pinblockLength: pinblock.length, accountLength: accountNumber.length });
+    
     const pinblockHex = pinblock.toString('hex').toUpperCase();
+    Logger.trace('PIN block hex', { hex: pinblockHex });
     
     // Extract PIN length from first nibble
     const pinLength = pinblock[0] >> 4; // Get upper nibble
+    Logger.trace('PIN length extracted', { pinLength });
+    
     if (pinLength < 4 || pinLength > 12) {
+      Logger.error('Invalid PIN length', { pinLength, expected: '4-12' });
       throw new Error('Invalid PIN length');
     }
 
     // Extract PIN digits
     const pinDigits = pinblockHex.substring(1, 1 + pinLength);
+    Logger.trace('PIN digits extracted', { pinDigits: pinDigits.replace(/./g, '*') }); // Mask PIN in logs
     
     // Validate PIN contains only digits
     if (!/^\d+$/.test(pinDigits)) {
+      Logger.error('Invalid PIN format', { format: 'non-numeric characters found' });
       throw new Error('Invalid PIN format');
     }
 
+    Logger.trace('Clear PIN extracted successfully', { length: pinDigits.length });
     return pinDigits;
   }
 
@@ -62,16 +72,25 @@ export class PinUtils {
    * @returns 4-digit PVV as buffer for comparison with stored PVV
    */
   static getVisaPVV(accountNumber: Buffer, pvki: Buffer, pin: string, pvkPair: Buffer): Buffer {
+    Logger.trace('Generating VISA PVV', { 
+      accountLength: accountNumber.length, 
+      pvkiLength: pvki.length, 
+      pinLength: pin.length,
+      pvkPairLength: pvkPair.length 
+    });
+    
     // NOTE: This is a simplified PVV calculation for simulation purposes
     // Production implementations must follow exact VISA specifications
     const account = accountNumber.toString('hex');
     const pvkiStr = pvki.toString('hex');
     const combined = account + pvkiStr + pin;
+    Logger.trace('PVV calculation data combined', { combinedLength: combined.length });
     
     // Use first 16 bytes of PVK pair for encryption
     const pvk = pvkPair.subarray(0, 16);
     const data = Buffer.from(combined.padEnd(16, '0').substring(0, 16), 'hex');
     const encrypted = CryptoUtils.encrypt3DES(pvk, data);
+    Logger.trace('PVV encryption completed', { encryptedLength: encrypted.length });
     
     // Extract 4 decimal digits from encrypted result
     const hex = encrypted.toString('hex');
@@ -84,7 +103,9 @@ export class PinUtils {
     }
     
     // Pad with zeros if needed
-    return Buffer.from(pvv.padEnd(4, '0'));
+    const result = Buffer.from(pvv.padEnd(4, '0'));
+    Logger.trace('VISA PVV generated', { pvvLength: result.length });
+    return result;
   }
 
   /**
@@ -102,15 +123,24 @@ export class PinUtils {
    * @returns 3-digit CVV as string for printing on the card
    */
   static getVisaCVV(accountNumber: Buffer, expiryDate: Buffer, serviceCode: Buffer, cvk: Buffer): string {
+    Logger.trace('Generating VISA CVV', { 
+      accountLength: accountNumber.length,
+      expiryLength: expiryDate.length,
+      serviceLength: serviceCode.length,
+      cvkLength: cvk.length 
+    });
+    
     // NOTE: This is a simplified CVV calculation for simulation purposes
     // Production implementations must follow exact VISA specifications
     const account = accountNumber.toString('hex');
     const expiry = expiryDate.toString('hex');
     const service = serviceCode.toString('hex');
     const combined = account + expiry + service;
+    Logger.trace('CVV calculation data combined', { combinedLength: combined.length });
     
     const data = Buffer.from(combined.padEnd(16, '0').substring(0, 16), 'hex');
     const encrypted = CryptoUtils.encrypt3DES(cvk, data);
+    Logger.trace('CVV encryption completed', { encryptedLength: encrypted.length });
     
     // Extract 3 decimal digits
     const hex = encrypted.toString('hex');
@@ -122,6 +152,8 @@ export class PinUtils {
       }
     }
     
-    return cvv.padEnd(3, '0');
+    const result = cvv.padEnd(3, '0');
+    Logger.trace('VISA CVV generated', { cvvLength: result.length });
+    return result;
   }
 }
