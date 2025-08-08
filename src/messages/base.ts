@@ -79,7 +79,7 @@ export abstract class BaseMessage {
  * Represents an outgoing HSM response message
  * Handles response building and formatting
  */
-export class OutgoingMessage extends BaseMessage {
+class OutgoingMessage extends BaseMessage {
   /** Optional message header */
   private header?: Buffer;
 
@@ -127,5 +127,3 @@ export class OutgoingMessage extends BaseMessage {
     return Buffer.concat([lengthBuffer, fullMessage]);
   }
 }
-
-export { BaseMessage }
