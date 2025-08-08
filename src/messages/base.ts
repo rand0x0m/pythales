@@ -127,3 +127,5 @@ export class OutgoingMessage extends BaseMessage {
     return Buffer.concat([lengthBuffer, fullMessage]);
   }
 }
+
+export { BaseMessage }
