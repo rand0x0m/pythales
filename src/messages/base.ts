@@ -79,7 +79,7 @@ export abstract class BaseMessage {
  * Represents an outgoing HSM response message
  * Handles response building and formatting
  */
-class OutgoingMessage extends BaseMessage {
+export class OutgoingMessage extends BaseMessage {
   /** Optional message header */
   private header?: Buffer;
 
