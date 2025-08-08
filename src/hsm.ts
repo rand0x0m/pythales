@@ -6,12 +6,12 @@ import { MessageUtils } from './utils/message';
 import { BaseMessage, OutgoingMessage } from './messages/base';
 import {
   A0Message, BUMessage, CAMessage, CWMessage, CYMessage,
-  DCMessage, ECMessage, FAMessage, HCMessage, NCMessage,
-  GCMessage, GSMessage, ECComponentMessage, FKMessage, KGMessage,
+  DCPinVerificationMessage, ECPinVerificationMessage, FAMessage, HCMessage, NCMessage,
+  GCMessage, GSMessage, ECMessage, FKMessage, KGMessage,
   IKMessage, KEMessage, CKMessage, A6Message, EAMessage,
   CVMessage, PVMessage, EDMessage, TDMessage, MIMessage,
   GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
-  DCComponentMessage, DMMessage, DOMessage, GTMessage, VMessage,
+  DCMessage, DMMessage, DOMessage, GTMessage, VMessage,
   KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
 } from './messages/commands';
 
@@ -128,7 +128,7 @@ export class HSM {
    * @param request DC or EC message to process
    * @returns Response message with verification result
    */
-  private verifyPin(request: DCMessage | ECMessage): OutgoingMessage {
+  private verifyPin(request: DCPinVerificationMessage | ECPinVerificationMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
     const commandCode = request.getCommandCode().toString();
     const keyType = commandCode === 'DC' ? 'TPK' : 'ZPK';
@@ -324,44 +324,53 @@ export class HSM {
 
       switch (commandStr) {
         // Original commands
+        // Core commands
         case 'A0': return new A0Message(commandData);
-        case 'A6': return new A6Message(commandData);
         case 'BU': return new BUMessage(commandData);
         case 'CA': return new CAMessage(commandData);
-        case 'CK': return new CKMessage(commandData);
-        case 'CV': return new CVMessage(commandData);
         case 'CW': return new CWMessage(commandData);
         case 'CY': return new CYMessage(commandData);
-        case 'DC': return new DCMessage(commandData);
+        case 'DC': return new DCPinVerificationMessage(commandData);
+        case 'EC': return new ECPinVerificationMessage(commandData);
+        case 'FA': return new FAMessage(commandData);
+        case 'HC': return new HCMessage(commandData);
+        case 'NC': return new NCMessage(commandData);
+        
+        // Key management commands
+        case 'GC': return new GCMessage(commandData);
+        case 'GS': return new GSMessage(commandData);
+        case 'FK': return new FKMessage(commandData);
+        case 'KG': return new KGMessage(commandData);
+        case 'IK': return new IKMessage(commandData);
+        case 'KE': return new KEMessage(commandData);
+        case 'CK': return new CKMessage(commandData);
+        case 'A6': return new A6Message(commandData);
+        case 'EA': return new EAMessage(commandData);
+        
+        // Card verification commands
+        case 'CV': return new CVMessage(commandData);
+        case 'PV': return new PVMessage(commandData);
+        case 'ED': return new EDMessage(commandData);
+        case 'TD': return new TDMessage(commandData);
+        case 'MI': return new MIMessage(commandData);
+        
+        // LMK management commands
+        case 'GK': return new GKMessage(commandData);
+        case 'LK': return new LKMessage(commandData);
+        case 'LO': return new LOMessage(commandData);
+        case 'LN': return new LNMessage(commandData);
+        case 'VT': return new VTMessage(commandData);
         case 'DM': return new DMMessage(commandData);
         case 'DO': return new DOMessage(commandData);
-        case 'EC': return new ECMessage(commandData);
-        case 'ED': return new EDMessage(commandData);
-        case 'EA': return new EAMessage(commandData);
-        case 'FA': return new FAMessage(commandData);
-        case 'FK': return new FKMessage(commandData);
-        case 'GC': return new GCMessage(commandData);
-        case 'GK': return new GKMessage(commandData);
-        case 'GS': return new GSMessage(commandData);
         case 'GT': return new GTMessage(commandData);
-        case 'HC': return new HCMessage(commandData);
-        case 'IK': return new IKMessage(commandData);
-        case 'KD': return new KDMessage(commandData);
-        case 'KE': return new KEMessage(commandData);
-        case 'KG': return new KGMessage(commandData);
-        case 'KK': return new KKMessage(commandData);
+        case 'V': return new VMessage(commandData);
+        
+        // KTK commands
         case 'KM': return new KMMessage(commandData);
         case 'KN': return new KNMessage(commandData);
         case 'KT': return new KTMessage(commandData);
-        case 'LK': return new LKMessage(commandData);
-        case 'LN': return new LNMessage(commandData);
-        case 'LO': return new LOMessage(commandData);
-        case 'MI': return new MIMessage(commandData);
-        case 'NC': return new NCMessage(commandData);
-        case 'PV': return new PVMessage(commandData);
-        case 'TD': return new TDMessage(commandData);
-        case 'V': return new VMessage(commandData);
-        case 'VT': return new VTMessage(commandData);
+        case 'KK': return new KKMessage(commandData);
+        case 'KD': return new KDMessage(commandData);
         default:
           console.log(`\nUnsupported command: ${commandStr}`);
           return null;
@@ -388,8 +397,8 @@ export class HSM {
       case 'CV': return this.generateCardVerificationValue(request as CVMessage);
       case 'CW': return this.generateCvv(request as CWMessage);
       case 'CY': return this.verifyCvv(request as CYMessage);
-      case 'DC': return this.verifyPin(request as DCMessage);
-      case 'EC': return this.verifyPin(request as ECMessage);
+      case 'DC': return this.verifyPin(request as DCPinVerificationMessage);
+      case 'EC': return this.verifyPin(request as ECPinVerificationMessage);
       case 'GC': return this.generateKeyComponent(request as GCMessage);
       case 'NC': return this.getDiagnosticsData();
       case 'PV': return this.generateVisaPVV(request as PVMessage);

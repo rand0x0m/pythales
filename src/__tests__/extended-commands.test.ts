@@ -1,9 +1,9 @@
 import {
-  GCMessage, GSMessage, ECMessage as ECComponentMessage, FKMessage, KGMessage,
+  GCMessage, GSMessage, ECMessage, FKMessage, KGMessage,
   IKMessage, KEMessage, CKMessage, A6Message, EAMessage,
   CVMessage, PVMessage, EDMessage, TDMessage, MIMessage,
   GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
-  DCComponentMessage, DMMessage, DOMessage, GTMessage, VMessage,
+  DCMessage, DMMessage, DOMessage, GTMessage, VMessage,
   KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
 } from '../messages/commands';
 
@@ -74,7 +74,7 @@ describe('Extended HSM Command Messages', () => {
   describe('ECMessage - Encrypt Clear Component', () => {
     it('should parse EC command', () => {
       const data = Buffer.from('0121234567890ABCDEF1234567890ABCDEF');
-      const msg = new ECComponentMessage(data);
+      const msg = new ECMessage(data);
       
       expect(msg.getCommandCode().toString()).toBe('EC');
       expect(msg.get('LMK-Id')?.toString()).toBe('01');
@@ -84,7 +84,7 @@ describe('Extended HSM Command Messages', () => {
 
     it('should handle different component lengths', () => {
       const data = Buffer.from('031FEDCBA0987654321');
-      const msg = new ECComponentMessage(data);
+      const msg = new ECMessage(data);
       
       expect(msg.get('Key Length Flag')?.toString()).toBe('3');
       expect(msg.get('Clear Component')?.toString()).toBe('FEDCBA0987654321');

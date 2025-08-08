@@ -1,6 +1,6 @@
 import {
   A0Message, BUMessage, CAMessage, CWMessage, CYMessage,
-  DCMessage, ECMessage, FAMessage, HCMessage, NCMessage
+  DCPinVerificationMessage, ECPinVerificationMessage, FAMessage, HCMessage, NCMessage
 } from '../messages/commands';
 
 /**
@@ -84,7 +84,7 @@ describe('HSM Command Messages', () => {
   describe('DCMessage - Verify PIN', () => {
     it('should parse complete DC command', () => {
       const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF1234567890ABCDEF1234567890ABCDEF2B687AEFC34B1A890100112345678918723');
-      const msg = new DCMessage(data);
+      const msg = new DCPinVerificationMessage(data);
       
       expect(msg.getCommandCode().toString()).toBe('DC');
       expect(msg.get('TPK')?.toString()).toBe('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
@@ -99,7 +99,7 @@ describe('HSM Command Messages', () => {
     it('should parse DC command with T-prefixed TPK', () => {
       const tpk = 'TDEADBEEFDEADBEEFDEADBEEFDEADBEEF';
       const data = Buffer.from(tpk + '1234567890ABCDEF1234567890ABCDEF2B687AEFC34B1A890100112345678918723');
-      const msg = new DCMessage(data);
+      const msg = new DCPinVerificationMessage(data);
       
       expect(msg.get('TPK')?.toString()).toBe(tpk);
     });
@@ -107,14 +107,14 @@ describe('HSM Command Messages', () => {
     it('should parse DC command with S-prefixed TPK', () => {
       const tpk = 'SDEADBEEFDEADBEEFDEADBEEFDEADBEEF';
       const data = Buffer.from(tpk + '1234567890ABCDEF1234567890ABCDEF2B687AEFC34B1A890100112345678918723');
-      const msg = new DCMessage(data);
+      const msg = new DCPinVerificationMessage(data);
       
       expect(msg.get('TPK')?.toString()).toBe(tpk);
     });
 
     it('should handle DC command with U-prefixed PVK pair', () => {
       const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEFUDEADBEEFDEADBEEFDEADBEEFDEADBEEF2B687AEFC34B1A890100112345678918723');
-      const msg = new DCMessage(data);
+      const msg = new DCPinVerificationMessage(data);
       
       expect(msg.get('PVK Pair')?.toString()).toBe('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
     });
@@ -199,7 +199,7 @@ describe('HSM Command Messages', () => {
   describe('ECMessage - Verify an Interchange PIN using ABA PVV method', () => {
     it('should parse complete EC command with account number', () => {
       const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF1234567890ABCDEF1234567890ABCDEF2B687AEFC34B1A890100112345678918723');
-      const msg = new ECMessage(data);
+      const msg = new ECPinVerificationMessage(data);
       
       expect(msg.getCommandCode().toString()).toBe('EC');
       expect(msg.get('ZPK')?.toString()).toBe('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
@@ -213,7 +213,7 @@ describe('HSM Command Messages', () => {
 
     it('should parse EC command with token (format 04)', () => {
       const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF1234567890ABCDEF1234567890ABCDEF2B687AEFC34B1A89040012345678901234567818723');
-      const msg = new ECMessage(data);
+      const msg = new ECPinVerificationMessage(data);
       
       expect(msg.get('PIN block format code')?.toString()).toBe('04');
       expect(msg.get('Token')?.toString()).toBe('001234567890123456');
@@ -222,7 +222,7 @@ describe('HSM Command Messages', () => {
 
     it('should handle EC command with U-prefixed PVK pair', () => {
       const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEFUDEADBEEFDEADBEEFDEADBEEFDEADBEEF12B687AEFC34B1A890100112345678918723');
-      const msg = new ECMessage(data);
+      const msg = new ECPinVerificationMessage(data);
       
       expect(msg.get('PVK Pair')?.toString()).toBe('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
     });
