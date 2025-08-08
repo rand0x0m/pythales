@@ -1,10 +1,15 @@
 import { MessageUtils } from '../utils/message';
+import { Logger } from '../utils/logger';
 
 /**
  * Comprehensive tests for MessageUtils class
  * Tests message parsing, building, and tracing functionality
  */
 describe('MessageUtils', () => {
+  beforeAll(() => {
+    Logger.initialize({});
+  });
+
   describe('parseMessage', () => {
     it('should parse simple message without header', () => {
       // Message: length(2) + command(2) + data(2)

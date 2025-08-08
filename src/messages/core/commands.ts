@@ -100,15 +100,19 @@ export class CAMessage extends BaseMessage {
     let offset = 0;
 
     // TPK
-    if (data[offset] === 0x55 || data[offset] === 0x54 || data[offset] === 0x53) { // 'U', 'T', 'S'
+    if (data.length >= offset + 33 && (data[offset] === 0x55 || data[offset] === 0x54 || data[offset] === 0x53)) { // 'U', 'T', 'S'
       this.fields['TPK'] = data.subarray(offset, offset + 33);
       offset += 33;
+    } else if (data[offset] === 0x55 || data[offset] === 0x54 || data[offset] === 0x53) {
+      throw new Error('Insufficient data for TPK field');
     }
 
     // Destination Key
-    if (data[offset] === 0x55 || data[offset] === 0x54 || data[offset] === 0x53) { // 'U', 'T', 'S'
+    if (data.length >= offset + 33 && (data[offset] === 0x55 || data[offset] === 0x54 || data[offset] === 0x53)) { // 'U', 'T', 'S'
       this.fields['Destination Key'] = data.subarray(offset, offset + 33);
       offset += 33;
+    } else if (data[offset] === 0x55 || data[offset] === 0x54 || data[offset] === 0x53) {
+      throw new Error('Insufficient data for Destination Key field');
     }
 
     // Maximum PIN Length

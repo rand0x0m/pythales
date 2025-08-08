@@ -115,11 +115,19 @@ export class ECMessage extends BaseMessage {
   private parseData(data: Buffer): void {
     let offset = 0;
 
-    this.fields['LMK-Id'] = data.subarray(offset, offset + 2);
-    offset += 2;
+    if (data.length >= offset + 2) {
+      this.fields['LMK-Id'] = data.subarray(offset, offset + 2);
+      offset += 2;
+    } else {
+      throw new Error('Insufficient data for LMK-Id field');
+    }
 
-    this.fields['Key Length Flag'] = data.subarray(offset, offset + 1);
-    offset += 1;
+    if (data.length >= offset + 1) {
+      this.fields['Key Length Flag'] = data.subarray(offset, offset + 1);
+      offset += 1;
+    } else {
+      throw new Error('Insufficient data for Key Length Flag field');
+    }
 
     // Clear Component (remaining data)
     if (offset < data.length) {

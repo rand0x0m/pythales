@@ -1,10 +1,15 @@
 import { PinUtils } from '../utils/pin';
+import { Logger } from '../utils/logger';
 
 /**
  * Comprehensive tests for PinUtils class
  * Tests PIN extraction, PVV generation, and CVV operations
  */
 describe('PinUtils', () => {
+  beforeAll(() => {
+    Logger.initialize({});
+  });
+
   describe('getClearPin', () => {
     const testAccount = Buffer.from('1234567890123456');
 

@@ -1,10 +1,15 @@
 import { CryptoUtils } from '../utils/crypto';
+import { Logger } from '../utils/logger';
 
 /**
  * Comprehensive tests for CryptoUtils class
  * Tests all cryptographic operations used in the HSM simulator
  */
 describe('CryptoUtils', () => {
+  beforeAll(() => {
+    Logger.initialize({});
+  });
+
   describe('xor', () => {
     it('should XOR two buffers of equal length correctly', () => {
       const buf1 = Buffer.from([0x01, 0x02, 0x03, 0x04]);

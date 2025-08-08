@@ -213,7 +213,7 @@ export class HSM {
       return response;
     } catch (error) {
       this.debugTrace(`Error: ${error}`);
-      Logger.error('PIN verification error', { error: error.toString() });
+      Logger.error('PIN verification error', { error: (error as Error).toString() });
       response.setErrorCode(this.approveAll ? '00' : '01');
       return response;
     }
@@ -435,7 +435,7 @@ export class HSM {
           return null;
       }
     } catch (error) {
-      Logger.error('Message parsing error', { error: error.toString() });
+      Logger.error('Message parsing error', { error: (error as Error).toString() });
       return null;
     }
   }
