@@ -7,11 +7,11 @@ import { BaseMessage, OutgoingMessage } from './messages/base';
 import {
   A0Message, BUMessage, CAMessage, CWMessage, CYMessage,
   DCPinVerificationMessage, ECPinVerificationMessage, FAMessage, HCMessage, NCMessage,
-  GCMessage, GSMessage, ECMessage, FKMessage, KGMessage,
+  GCMessage, GSMessage, ECKeyManagementMessage, FKMessage, KGMessage,
   IKMessage, KEMessage, CKMessage, A6Message, EAMessage,
   CVMessage, PVMessage, EDMessage, TDMessage, MIMessage,
-  GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
-  DCMessage, DMMessage, DOMessage, GTMessage, VMessage,
+  GKMessage, LKMessage, LOMessage, LNMessage, VTMessage, 
+  DCLMKManagementMessage, DMMessage, DOMessage, GTMessage, VMessage,
   KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
 } from './messages/commands';
 

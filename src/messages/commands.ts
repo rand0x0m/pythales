@@ -21,7 +21,7 @@ export {
 export {
   GCMessage,
   GSMessage,
-  ECMessage,
+  ECMessage as ECKeyManagementMessage,
   FKMessage,
   KGMessage,
   IKMessage,
@@ -49,7 +49,7 @@ export {
   LOMessage,
   LNMessage,
   VTMessage,
-  DCMessage,
+  DCMessage as DCLMKManagementMessage,
   DMMessage,
   DOMessage,
   GTMessage,
