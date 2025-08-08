@@ -67,4 +67,3 @@ export {
 
 // Type aliases for backward compatibility
 export { DCPinVerificationMessage as DCMessage } from './core/commands';
-export { ECPinVerificationMessage as ECMessage } from './core/commands';

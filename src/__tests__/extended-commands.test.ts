@@ -5,7 +5,6 @@ import {
   GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
   DCMessage, DMMessage, DOMessage, GTMessage, VMessage,
   KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
-} from '../messages/commands';
 
 /**
  * Comprehensive tests for Extended HSM Commands

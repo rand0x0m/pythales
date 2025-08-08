@@ -44,7 +44,18 @@ export class CryptoUtils {
    */
   static encrypt3DES(key: Buffer, data: Buffer): Buffer {
     Logger.trace('3DES encryption', { keyLength: key.length, dataLength: data.length });
-    const cipher = createCipheriv('des-ede3', key, null);
+    
+    // Ensure key is 24 bytes for des-ede3 cipher
+    let expandedKey = key;
+    if (key.length === 16) {
+      // 2DES: K1K2K1 (concatenate first 8 bytes to make 24 bytes)
+      expandedKey = Buffer.concat([key, key.subarray(0, 8)]);
+    } else if (key.length === 8) {
+      // Single DES: K1K1K1 (repeat key three times)
+      expandedKey = Buffer.concat([key, key, key]);
+    }
+    
+    const cipher = createCipheriv('des-ede3', expandedKey, null);
     cipher.setAutoPadding(false);
     return Buffer.concat([cipher.update(data), cipher.final()]);
   }
@@ -61,7 +72,18 @@ export class CryptoUtils {
    */
   static decrypt3DES(key: Buffer, data: Buffer): Buffer {
     Logger.trace('3DES decryption', { keyLength: key.length, dataLength: data.length });
-    const decipher = createDecipheriv('des-ede3', key, null);
+    
+    // Ensure key is 24 bytes for des-ede3 cipher
+    let expandedKey = key;
+    if (key.length === 16) {
+      // 2DES: K1K2K1 (concatenate first 8 bytes to make 24 bytes)
+      expandedKey = Buffer.concat([key, key.subarray(0, 8)]);
+    } else if (key.length === 8) {
+      // Single DES: K1K1K1 (repeat key three times)
+      expandedKey = Buffer.concat([key, key, key]);
+    }
+    
+    const decipher = createDecipheriv('des-ede3', expandedKey, null);
     decipher.setAutoPadding(false);
     return Buffer.concat([decipher.update(data), decipher.final()]);
   }
