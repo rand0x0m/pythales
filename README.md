@@ -1,57 +1,98 @@
-# pythales
+# Thales HSM Simulator (TypeScript)
 
+A modern TypeScript implementation of a Thales HSM (Hardware Security Module) simulator. This project provides a clean, type-safe implementation of the most popular HSM commands used in payment processing and cryptographic operations.
 
-A primitive implementation of [Thales HSM](https://en.wikipedia.org/wiki/Hardware_security_module) hardware security module) simulator. Only the basic (the most popular) HSM commands are implemented:
+## Features
 
-- A0 - Generate a Key
-- BU - Generate a Key check value 
-- CA - Translate PIN from TPK to ZPK 
-- CY - Verify CVV/CSC
-- DC - Verify PIN
-- EC - Verify an Interchange PIN using ABA PVV method
-- FA - Translate a ZPK from ZMK to LMK
-- HC - Generate a TMK, TPK or PVK
-- NC - Diagnostics information
+### Supported HSM Commands
+
+- **A0** - Generate a Key
+- **BU** - Generate a Key check value 
+- **CA** - Translate PIN from TPK to ZPK 
+- **CY** - Verify CVV/CSC
+- **DC** - Verify PIN
+- **EC** - Verify an Interchange PIN using ABA PVV method
+- **FA** - Translate a ZPK from ZMK to LMK
+- **HC** - Generate a TMK, TPK or PVK
+- **NC** - Diagnostics information
+
+### Key Features
+
+- **Type Safety**: Full TypeScript implementation with comprehensive type definitions
+- **Modern Architecture**: Clean separation of concerns with modular design
+- **Comprehensive Testing**: Jest test suite with good coverage
+- **Flexible Configuration**: Command-line options for various HSM settings
+- **Debug Support**: Detailed logging and tracing capabilities
+- **Cryptographic Operations**: Built-in support for 3DES encryption/decryption
+- **PIN/PVV Verification**: Industry-standard PIN and PVV validation
+- **CVV Generation/Verification**: Card verification value operations
 
 ## Installation
 
-Install git and python3:
+### Prerequisites
+
+- Node.js 16+ 
+- npm or yarn
+
+### Setup
+
 ```bash
-apt-get install git python3 python3-pip
+# Clone the repository
+git clone <repository-url>
+cd thales-hsm-simulator
+
+# Install dependencies
+npm install
+
+# Build the project
+npm run build
 ```
 
-Setup virtual environment for python3 (check the [Manual](https://virtualenvwrapper.readthedocs.io/en/latest/)):
+## Usage
+
+### Command Line Options
+
 ```bash
-mkvirtualenv pyenv -p /usr/bin/python3
-workon pyenv
+npm run dev -- [OPTIONS]
 ```
 
-Check out the code and install requirements:
+Available options:
+
+- `-p, --port=[PORT]` - TCP port to listen on (default: 1500)
+- `-k, --key=[KEY]` - LMK key in hex format (default: deafbeedeafbeedeafbeedeafbeedeaf)
+- `-h, --header=[HEADER]` - Message header (default: empty)
+- `-d, --debug` - Enable debug mode
+- `-s, --skip-parity` - Skip key parity checks
+- `-a, --approve-all` - Approve all requests (for testing)
+- `--help` - Show help message
+
+### Example Usage
+
 ```bash
-git clone https://github.com/timgabets/pythales
-cd pythales
-workon pyenv
-pip3 install -r requirements.txt
-```
- 
-Run:
-```bash
-cd examples/
-./hsm_server.py --help # check the options
-./hsm_server.py -h SSSS -d --skip-parity
+# Start HSM with default settings
+npm run dev
+
+# Start with custom port and debug mode
+npm run dev -- -p 1501 -d
+
+# Start with message header and skip parity checks
+npm run dev -- -h SSSS -s
+
+# Start with all approvals (testing mode)
+npm run dev -- -a -d
 ```
 
-Output example:
+### Example Output
+
 ```
-# ./hsm_server.py -h SSSS -d --skip-parity
- LMK: DEAFBEEDEAFBEEDEAFBEEDEAFBEEDEAF
- Firmware version: 0007-E000
- Message header: SSSS
- Listening on port 1500
- Connected client: 192.168.56.101:50010
- 17:59:49.278803 << 8 bytes received from 192.168.56.101:50010: 
+LMK: DEAFBEEDEAFBEEDEAFBEEDEAFBEEDEAF
+Firmware version: 0007-E000
+Message header: SSSS
+Listening on port 1500
+Connected client: 192.168.1.100:50010
+17:59:49.278803 << 8 bytes received from 192.168.1.100:50010: 
 	00 06 53 53 53 53 4e 43                                 ..SSSSNC
- 17:59:49.279338 >> 35 bytes sent to 192.168.56.101:50010:
+17:59:49.279338 >> 35 bytes sent to 192.168.1.100:50010:
  	00 21 53 53 53 53 4e 44 30 30 46 34 45 44 43 38         .!SSSSND00F4EDC8
  	44 45 42 36 37 46 36 45 32 38 30 30 30 37 2d 45         DEB67F6E280007-E
 	30 30 30                                                000
@@ -59,41 +100,92 @@ Output example:
 	[Error Code      ]: [00]
 	[LMK Check Value ]: [F4EDC8DEB67F6E28]
 	[Firmware Version]: [0007-E000]
- 18:01:13.089485 << 108 bytes received from 192.168.56.101:50010: 
-	00 6a 53 53 53 53 44 43 55 43 34 45 44 35 39 37         .jSSSSDCUC4ED597
-	45 45 30 43 39 36 39 37 31 30 34 45 44 33 39 39         EE0C9697104ED399
-	42 45 36 46 38 42 38 37 32 37 33 33 36 44 35 30         BE6F8B8727336D50
-	43 34 37 31 32 38 44 37 31 30 44 46 34 35 30 42         C47128D710DF450B
-	43 42 32 43 36 34 36 31 42 37 39 33 41 45 36 32         CB2C6461B793AE62
-	44 46 43 38 44 32 34 32 36 30 31 34 30 37 30 30         DFC8D24260140700
-	30 30 30 30 30 31 30 31 33 38 34 33                     000001013843	
-	[TPK                  ]: [UC4ED597EE0C9697104ED399BE6F8B872]
-	[PVK Pair             ]: [7336D50C47128D710DF450BCB2C6461B]
-	[PIN block            ]: [793AE62DFC8D2426]
-	[PIN block format code]: [01]
-	[Account Number       ]: [407000000010]
-	[PVKI                 ]: [1]
-	[PVV                  ]: [3843]
-	DEBUG: Decrypted pinblock: 0412748FFFFFFFEF
- 18:01:13.090230 >> 10 bytes sent to 192.168.56.101:50010:
-	00 08 53 53 53 53 44 44 30 30                           ..SSSSDD00
-	[Response Code]: [DD]
-	[Error Code   ]: [00]
- 18:01:13.104389 << 68 bytes received from 192.168.56.101:50010: 
-	00 42 53 53 53 53 43 59 55 31 43 31 45 42 31 30         .BSSSSCYU1C1EB10
-	39 30 36 38 31 43 43 39 45 36 30 30 33 45 30 35         90681CC9E6003E05
-	32 31 37 43 37 30 37 37 45 36 34 30 34 31 37 34         217C7077E6404174
-	30 37 30 30 30 30 30 30 30 31 30 34 3b 31 37 31         070000000104;171
-	32 32 30 31                                             2201
-	[CVK                   ]: [U1C1EB1090681CC9E6003E05217C7077E]
-	[CVV                   ]: [640]
-	[Primary Account Number]: [4174070000000104]
-	[Expiration Date       ]: [1712]
-	[Service Code          ]: [201]
- 18:01:13.104979 >> 10 bytes sent to 192.168.56.101:50010:
-	00 08 53 53 53 53 43 5a 30 30                           ..SSSSCZ00
-	[Response Code]: [CZ]
-	[Error Code   ]: [00]
 ```
 
-You may also check [examples](https://github.com/timgabets/pythales/tree/master/examples) for more sophisticated HSM server implementation with some features like command line options parsing etc. The application works as server that may simultaneously serve only one connected client.
+## Development
+
+### Scripts
+
+- `npm run build` - Compile TypeScript to JavaScript
+- `npm run dev` - Run in development mode with ts-node
+- `npm start` - Run compiled JavaScript
+- `npm test` - Run test suite
+- `npm run test:watch` - Run tests in watch mode
+- `npm run lint` - Run ESLint
+- `npm run clean` - Clean build directory
+
+### Project Structure
+
+```
+src/
+├── types/           # TypeScript type definitions
+├── utils/           # Utility functions (crypto, PIN, message handling)
+├── messages/        # Message parsing and handling
+├── hsm.ts          # Main HSM class
+├── index.ts        # CLI entry point
+└── __tests__/      # Test files
+```
+
+### Testing
+
+The project includes comprehensive tests using Jest:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm test -- --coverage
+```
+
+## Architecture
+
+### Core Components
+
+1. **HSM Class** (`src/hsm.ts`): Main HSM simulator with command processing
+2. **Message Parsers** (`src/messages/`): Individual command message parsers
+3. **Crypto Utils** (`src/utils/crypto.ts`): Cryptographic operations
+4. **PIN Utils** (`src/utils/pin.ts`): PIN and PVV related operations
+5. **Message Utils** (`src/utils/message.ts`): Message parsing and formatting
+
+### Key Design Principles
+
+- **Type Safety**: Comprehensive TypeScript types for all operations
+- **Modularity**: Clear separation between different functional areas
+- **Testability**: Easy to test individual components
+- **Extensibility**: Simple to add new HSM commands
+- **Error Handling**: Robust error handling with meaningful messages
+
+## Security Notes
+
+This is a **simulator** intended for development and testing purposes only. It should **never** be used in production environments or with real cryptographic keys. The implementation includes:
+
+- Simplified cryptographic operations
+- Test-friendly key generation
+- Debug modes that expose sensitive information
+- Approval modes that bypass security checks
+
+## License
+
+This project is licensed under the GNU Lesser General Public License v2.1 (LGPL-2.1). See the LICENSE file for details.
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes with tests
+4. Run the test suite
+5. Submit a pull request
+
+## Changelog
+
+### Version 1.0.0
+- Complete TypeScript rewrite
+- Modern architecture with full type safety
+- Comprehensive test suite
+- Improved error handling
+- Better separation of concerns
+- Enhanced debugging capabilities
