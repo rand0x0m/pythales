@@ -2,14 +2,25 @@ import { createCipheriv, createDecipheriv, randomBytes } from 'crypto';
 
 /**
  * Cryptographic utility functions for HSM operations
- * Provides 3DES encryption/decryption, key generation, and parity checking
+ * 
+ * This class provides essential cryptographic operations used throughout the HSM:
+ * - Triple DES encryption and decryption in ECB mode
+ * - Cryptographically secure key generation with proper parity
+ * - Key parity validation according to DES standards
+ * - Key check value generation for verification
+ * - XOR operations for key manipulation
+ * 
+ * All operations follow industry standards for HSM implementations.
  */
 export class CryptoUtils {
   /**
-   * Performs XOR operation on two buffers
+   * Performs XOR operation on two buffers of potentially different lengths.
+   * The result buffer will be the length of the longer input buffer.
+   * Missing bytes in the shorter buffer are treated as zero.
+   * 
    * @param buffer1 First buffer
    * @param buffer2 Second buffer
-   * @returns XOR result buffer with length of the longer input
+   * @returns XOR result buffer with length of the longer input buffer
    */
   static xor(buffer1: Buffer, buffer2: Buffer): Buffer {
     const result = Buffer.alloc(Math.max(buffer1.length, buffer2.length));
@@ -20,10 +31,15 @@ export class CryptoUtils {
   }
 
   /**
-   * Encrypts data using 3DES in ECB mode
-   * @param key 16 or 24 byte encryption key
-   * @param data Data to encrypt (must be multiple of 8 bytes)
-   * @returns Encrypted data
+   * Encrypts data using Triple DES (3DES) in ECB mode.
+   * 
+   * Uses the standard 3DES algorithm with the provided key. The key can be
+   * either 16 bytes (2DES) or 24 bytes (3DES). Input data must be a multiple
+   * of 8 bytes (DES block size) as no padding is applied.
+   * 
+   * @param key 16 or 24 byte encryption key (must have proper DES parity)
+   * @param data Data to encrypt (must be multiple of 8 bytes, no padding applied)
+   * @returns Encrypted data buffer of the same length as input
    */
   static encrypt3DES(key: Buffer, data: Buffer): Buffer {
     const cipher = createCipheriv('des-ede3-ecb', key, null);
@@ -32,10 +48,14 @@ export class CryptoUtils {
   }
 
   /**
-   * Decrypts data using 3DES in ECB mode
-   * @param key 16 or 24 byte decryption key
-   * @param data Encrypted data to decrypt
-   * @returns Decrypted data
+   * Decrypts data using Triple DES (3DES) in ECB mode.
+   * 
+   * Reverses the encryption process using the same key that was used for
+   * encryption. The key must match the original encryption key exactly.
+   * 
+   * @param key 16 or 24 byte decryption key (must match encryption key)
+   * @param data Encrypted data to decrypt (must be multiple of 8 bytes)
+   * @returns Decrypted data buffer of the same length as input
    */
   static decrypt3DES(key: Buffer, data: Buffer): Buffer {
     const decipher = createDecipheriv('des-ede3-ecb', key, null);
@@ -44,19 +64,28 @@ export class CryptoUtils {
   }
 
   /**
-   * Generates a cryptographically secure random key with proper parity
-   * @param length Key length in bytes (default: 16)
-   * @returns Random key with odd parity
+   * Generates a cryptographically secure random key with proper DES parity.
+   * 
+   * Creates a random key using Node.js crypto.randomBytes() and then applies
+   * proper odd parity to each byte according to DES standards. This ensures
+   * the generated key is suitable for use in DES/3DES operations.
+   * 
+   * @param length Key length in bytes (default: 16 for 2DES, use 24 for 3DES)
+   * @returns Cryptographically secure random key with proper odd parity applied
    */
   static generateRandomKey(length: number = 16): Buffer {
     return this.modifyKeyParity(randomBytes(length));
   }
 
   /**
-   * Modifies a key to ensure odd parity on each byte
-   * Sets the least significant bit of each byte to achieve odd parity
-   * @param key Input key buffer
-   * @returns Key with odd parity applied
+   * Modifies a key to ensure odd parity on each byte according to DES standards.
+   * 
+   * DES requires that each byte of a key has odd parity (an odd number of 1 bits).
+   * This function examines each byte and sets the least significant bit to ensure
+   * odd parity is maintained. This is required for proper DES key validation.
+   * 
+   * @param key Input key buffer to modify
+   * @returns New key buffer with odd parity applied to each byte
    */
   static modifyKeyParity(key: Buffer): Buffer {
     const result = Buffer.from(key);
@@ -72,9 +101,14 @@ export class CryptoUtils {
   }
 
   /**
-   * Validates that a key has proper odd parity
+   * Validates that a key has proper odd parity according to DES standards.
+   * 
+   * Checks each byte of the key to ensure it has odd parity (odd number of 1 bits).
+   * This is a requirement for DES keys and helps detect key corruption or
+   * transmission errors.
+   * 
    * @param key Key buffer to validate
-   * @returns true if all bytes have odd parity, false otherwise
+   * @returns true if all bytes have proper odd parity, false if any byte has even parity
    */
   static checkKeyParity(key: Buffer): boolean {
     for (let i = 0; i < key.length; i++) {
@@ -91,10 +125,16 @@ export class CryptoUtils {
   }
 
   /**
-   * Generates a key check value by encrypting zeros
+   * Generates a key check value (KCV) by encrypting a block of zeros.
+   * 
+   * A key check value is used to verify that a key has been transmitted or
+   * stored correctly. It's generated by encrypting a block of zeros with the
+   * key and taking the first few bytes of the result. This provides a way to
+   * verify key integrity without exposing the actual key value.
+   * 
    * @param key Key to generate check value for
-   * @param length Number of bytes to return (default: 6)
-   * @returns Key check value
+   * @param length Number of bytes to return from the encrypted result (default: 6)
+   * @returns Key check value buffer for verification purposes
    */
   static getKeyCheckValue(key: Buffer, length: number = 6): Buffer {
     const zeros = Buffer.alloc(8);

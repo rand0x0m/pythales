@@ -2,16 +2,30 @@ import { CryptoUtils } from './crypto';
 
 /**
  * PIN and PVV utility functions for payment card operations
- * Handles PIN block decryption, PVV generation/validation, and CVV operations
+ * 
+ * This class provides specialized functions for payment card PIN operations:
+ * - PIN block format parsing and validation
+ * - PIN Verification Value (PVV) generation and validation
+ * - Card Verification Value (CVV) generation for card-not-present transactions
+ * 
+ * These operations follow industry standards for payment processing and
+ * card authentication systems.
  */
 export class PinUtils {
   /**
-   * Extracts clear PIN from an encrypted PIN block
-   * Supports ISO Format 0 PIN blocks
-   * @param pinblock Decrypted PIN block buffer
-   * @param accountNumber Account number for validation
-   * @returns Clear PIN as string
-   * @throws Error if PIN format is invalid
+   * Extracts clear PIN from a decrypted PIN block using ISO Format 0.
+   * 
+   * ISO Format 0 PIN blocks have the structure:
+   * - First nibble: PIN length (4-12)
+   * - Next nibbles: PIN digits
+   * - Remaining nibbles: Padding (usually 'F')
+   * 
+   * This function validates the PIN length and ensures all PIN digits are numeric.
+   * 
+   * @param pinblock Decrypted PIN block buffer (8 bytes)
+   * @param accountNumber Account number for validation (currently unused but kept for compatibility)
+   * @returns Clear PIN as string containing only numeric digits
+   * @throws Error if PIN length is invalid (not 4-12) or PIN contains non-numeric characters
    */
   static getClearPin(pinblock: Buffer, accountNumber: Buffer): string {
     const pinblockHex = pinblock.toString('hex').toUpperCase();
@@ -35,16 +49,22 @@ export class PinUtils {
   }
 
   /**
-   * Generates VISA PIN Verification Value (PVV)
-   * Used for offline PIN verification in payment systems
-   * @param accountNumber Primary account number
-   * @param pvki PIN Verification Key Indicator
-   * @param pin Clear PIN (first 4 digits used)
-   * @param pvkPair PIN Verification Key pair
-   * @returns 4-digit PVV as buffer
+   * Generates VISA PIN Verification Value (PVV) for offline PIN verification.
+   * 
+   * The PVV is used in payment systems to verify PINs without transmitting
+   * the actual PIN. This is a simplified implementation of the VISA PVV
+   * algorithm. In production systems, this would follow the exact VISA
+   * specification with proper key derivation and validation steps.
+   * 
+   * @param accountNumber Primary account number (PAN) as buffer
+   * @param pvki PIN Verification Key Indicator (1 byte)
+   * @param pin Clear PIN string (only first 4 digits are used for PVV calculation)
+   * @param pvkPair PIN Verification Key pair (32 bytes, first 16 used for encryption)
+   * @returns 4-digit PVV as buffer for comparison with stored PVV
    */
   static getVisaPVV(accountNumber: Buffer, pvki: Buffer, pin: string, pvkPair: Buffer): Buffer {
-    // Simplified PVV calculation - in real implementation this would be more complex
+    // NOTE: This is a simplified PVV calculation for simulation purposes
+    // Production implementations must follow exact VISA specifications
     const account = accountNumber.toString('hex');
     const pvkiStr = pvki.toString('hex');
     const combined = account + pvkiStr + pin;
@@ -69,16 +89,22 @@ export class PinUtils {
   }
 
   /**
-   * Generates VISA Card Verification Value (CVV)
-   * Used for card-not-present transaction verification
-   * @param accountNumber Primary account number
-   * @param expiryDate Card expiry date (YYMM)
-   * @param serviceCode 3-digit service code
-   * @param cvk Card Verification Key
-   * @returns 3-digit CVV as string
+   * Generates VISA Card Verification Value (CVV) for card-not-present transactions.
+   * 
+   * The CVV (also known as CVV2) is printed on the back of payment cards and
+   * used to verify that the person making a card-not-present transaction has
+   * physical possession of the card. This is a simplified implementation of
+   * the VISA CVV generation algorithm.
+   * 
+   * @param accountNumber Primary account number (PAN) as buffer
+   * @param expiryDate Card expiry date in YYMM format (4 bytes)
+   * @param serviceCode 3-digit service code from the magnetic stripe (3 bytes)
+   * @param cvk Card Verification Key used for CVV generation (16 bytes)
+   * @returns 3-digit CVV as string for printing on the card
    */
   static getVisaCVV(accountNumber: Buffer, expiryDate: Buffer, serviceCode: Buffer, cvk: Buffer): string {
-    // Simplified CVV calculation
+    // NOTE: This is a simplified CVV calculation for simulation purposes
+    // Production implementations must follow exact VISA specifications
     const account = accountNumber.toString('hex');
     const expiry = expiryDate.toString('hex');
     const service = serviceCode.toString('hex');
