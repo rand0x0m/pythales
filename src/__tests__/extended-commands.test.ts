@@ -5,6 +5,7 @@ import {
   GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
   DCMessage, DMMessage, DOMessage, GTMessage, VMessage,
   KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
+}
 
 /**
  * Comprehensive tests for Extended HSM Commands
@@ -73,7 +74,7 @@ describe('Extended HSM Command Messages', () => {
   describe('ECMessage - Encrypt Clear Component', () => {
     it('should parse EC command', () => {
       const data = Buffer.from('01' + '2' + '1234567890ABCDEF1234567890ABCDEF');
-      const msg = new ECMessage(data);
+      const msg = new ECKeyManagementMessage(data);
       
       expect(msg.getCommandCode().toString()).toBe('EC');
       expect(msg.get('LMK-Id')?.toString()).toBe('01');
@@ -83,7 +84,7 @@ describe('Extended HSM Command Messages', () => {
 
     it('should handle different component lengths', () => {
       const data = Buffer.from('031FEDCBA0987654321');
-      const msg = new ECMessage(data);
+      const msg = new ECKeyManagementMessage(data);
       
       expect(msg.get('Key Length Flag')?.toString()).toBe('3');
       expect(msg.get('Clear Component')?.toString()).toBe('FEDCBA0987654321');
