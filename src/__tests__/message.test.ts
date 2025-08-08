@@ -132,7 +132,7 @@ describe('MessageUtils', () => {
       };
       const result = MessageUtils.buildMessage(undefined, 'ND', fields);
       
-      expect(result.readUInt16BE(0)).toBe(18); // ND + 00 + 123456 + 0007-E000
+      expect(result.readUInt16BE(0)).toBe(19); // ND + 00 + 123456 + 0007-E000
       expect(result.subarray(2).toString()).toBe('ND00123456' + '0007-E000');
     });
 

@@ -42,7 +42,7 @@ export class CryptoUtils {
    * @returns Encrypted data buffer of the same length as input
    */
   static encrypt3DES(key: Buffer, data: Buffer): Buffer {
-    const cipher = createCipheriv('des-ede3-ecb', key, null);
+    const cipher = createCipheriv('des-ede3', key, null);
     cipher.setAutoPadding(false);
     return Buffer.concat([cipher.update(data), cipher.final()]);
   }
@@ -58,7 +58,7 @@ export class CryptoUtils {
    * @returns Decrypted data buffer of the same length as input
    */
   static decrypt3DES(key: Buffer, data: Buffer): Buffer {
-    const decipher = createDecipheriv('des-ede3-ecb', key, null);
+    const decipher = createDecipheriv('des-ede3', key, null);
     decipher.setAutoPadding(false);
     return Buffer.concat([decipher.update(data), decipher.final()]);
   }

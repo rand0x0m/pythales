@@ -29,16 +29,15 @@ export class PinUtils {
    */
   static getClearPin(pinblock: Buffer, accountNumber: Buffer): string {
     const pinblockHex = pinblock.toString('hex').toUpperCase();
-    const accountHex = accountNumber.toString('hex').toUpperCase();
     
     // Extract PIN length from first nibble
-    const pinLength = parseInt(pinblockHex[0], 16);
+    const pinLength = pinblock[0] >> 4; // Get upper nibble
     if (pinLength < 4 || pinLength > 12) {
       throw new Error('Invalid PIN length');
     }
 
     // Extract PIN digits
-    const pinDigits = pinblockHex.substring(1, pinLength + 1);
+    const pinDigits = pinblockHex.substring(1, 1 + pinLength);
     
     // Validate PIN contains only digits
     if (!/^\d+$/.test(pinDigits)) {

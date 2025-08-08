@@ -113,10 +113,10 @@ describe('HSM Command Messages', () => {
     });
 
     it('should handle DC command with U-prefixed PVK pair', () => {
-      const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEFUDEADBEEFDEADBEEFDEADBEEFDEADBEEF12B687AEFC34B1A890100112345678918723');
+      const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEFUDEADBEEFDEADBEEFDEADBEEFDEADBEEF2B687AEFC34B1A890100112345678918723');
       const msg = new DCMessage(data);
       
-      expect(msg.get('PVK Pair')?.toString()).toBe('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF1');
+      expect(msg.get('PVK Pair')?.toString()).toBe('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
     });
   });
 
