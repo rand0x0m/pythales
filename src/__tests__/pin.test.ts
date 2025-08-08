@@ -9,67 +9,67 @@ describe('PinUtils', () => {
     const testAccount = Buffer.from('1234567890123456');
 
     it('should extract 4-digit PIN correctly', () => {
-      const pinblock = Buffer.from('041234FFFFFFFFFF', 'hex');
+      const pinblock = Buffer.from('41234FFFFFFFFFF', 'hex');
       const pin = PinUtils.getClearPin(pinblock, testAccount);
       expect(pin).toBe('1234');
     });
 
     it('should extract 6-digit PIN correctly', () => {
-      const pinblock = Buffer.from('06123456FFFFFFFF', 'hex');
+      const pinblock = Buffer.from('6123456FFFFFFFFF', 'hex');
       const pin = PinUtils.getClearPin(pinblock, testAccount);
       expect(pin).toBe('123456');
     });
 
     it('should extract 8-digit PIN correctly', () => {
-      const pinblock = Buffer.from('0812345678FFFFFF', 'hex');
+      const pinblock = Buffer.from('812345678FFFFFFF', 'hex');
       const pin = PinUtils.getClearPin(pinblock, testAccount);
       expect(pin).toBe('12345678');
     });
 
     it('should extract 12-digit PIN correctly', () => {
-      const pinblock = Buffer.from('0C123456789012FF', 'hex');
+      const pinblock = Buffer.from('C123456789012FFF', 'hex');
       const pin = PinUtils.getClearPin(pinblock, testAccount);
       expect(pin).toBe('123456789012');
     });
 
     it('should throw error for PIN length 0', () => {
-      const pinblock = Buffer.from('001234FFFFFFFFFF', 'hex');
+      const pinblock = Buffer.from('01234FFFFFFFFFFF', 'hex');
       expect(() => PinUtils.getClearPin(pinblock, testAccount))
         .toThrow('Invalid PIN length');
     });
 
     it('should throw error for PIN length > 12', () => {
-      const pinblock = Buffer.from('0D1234567890123F', 'hex');
+      const pinblock = Buffer.from('D1234567890123FF', 'hex');
       expect(() => PinUtils.getClearPin(pinblock, testAccount))
         .toThrow('Invalid PIN length');
     });
 
     it('should throw error for PIN length 3', () => {
-      const pinblock = Buffer.from('03123FFFFFFFFFFF', 'hex');
+      const pinblock = Buffer.from('3123FFFFFFFFFFFF', 'hex');
       expect(() => PinUtils.getClearPin(pinblock, testAccount))
         .toThrow('Invalid PIN length');
     });
 
     it('should throw error for non-numeric PIN digits', () => {
-      const pinblock = Buffer.from('04123AFFFFFFFFFF', 'hex');
+      const pinblock = Buffer.from('4123AFFFFFFFFFFF', 'hex');
       expect(() => PinUtils.getClearPin(pinblock, testAccount))
         .toThrow('Invalid PIN format');
     });
 
     it('should throw error for PIN with mixed hex characters', () => {
-      const pinblock = Buffer.from('0412B4FFFFFFFFFF', 'hex');
+      const pinblock = Buffer.from('412B4FFFFFFFFFFF', 'hex');
       expect(() => PinUtils.getClearPin(pinblock, testAccount))
         .toThrow('Invalid PIN format');
     });
 
     it('should handle edge case with all 9s', () => {
-      const pinblock = Buffer.from('049999FFFFFFFFFF', 'hex');
+      const pinblock = Buffer.from('49999FFFFFFFFFFF', 'hex');
       const pin = PinUtils.getClearPin(pinblock, testAccount);
       expect(pin).toBe('9999');
     });
 
     it('should handle edge case with all 0s', () => {
-      const pinblock = Buffer.from('040000FFFFFFFFFF', 'hex');
+      const pinblock = Buffer.from('40000FFFFFFFFFFF', 'hex');
       const pin = PinUtils.getClearPin(pinblock, testAccount);
       expect(pin).toBe('0000');
     });

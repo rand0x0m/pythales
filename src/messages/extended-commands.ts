@@ -520,82 +520,25 @@ export class CVMessage extends BaseMessage {
     this.fields['LMK-Id'] = data.subarray(offset, offset + 2);
     offset += 2;
 
-    // CVK-A (determine length: 16, 32, or 48 hex characters)
-    const cvkALength = this.determineCVKLength(data, offset);
+    // CVK-A (32 hex characters for double-length DES)
+    const cvkALength = 32;
     this.fields['CVK-A'] = data.subarray(offset, offset + cvkALength);
     offset += cvkALength;
 
-    // Optional CVK-B (same length as CVK-A)
-    if (this.hasCVKB(data, offset, cvkALength)) {
-      this.fields['CVK-B'] = data.subarray(offset, offset + cvkALength);
-      offset += cvkALength;
-    }
-
-    // Find PAN end by looking for expiry date pattern (4 consecutive digits)
-    const panEnd = this.findPANEnd(data, offset);
-    this.fields['PAN'] = data.subarray(offset, panEnd);
-    offset = panEnd;
+    // Calculate positions from the end: Service Code (3) + Expiry Date (4) = 7 bytes
+    const expiryStart = data.length - 7;
+    const serviceStart = data.length - 3;
+    
+    // PAN is everything between current offset and expiry date
+    this.fields['PAN'] = data.subarray(offset, expiryStart);
+    offset = expiryStart;
 
     // Expiry date (4 decimal digits in MMYY format)
     this.fields['Expiry Date'] = data.subarray(offset, offset + 4);
     offset += 4;
 
     // Service code (3 decimal digits)
-    if (offset + 3 <= data.length) {
-      this.fields['Service Code'] = data.subarray(offset, offset + 3);
-    }
-  }
-
-  /**
-   * Determines CVK length based on data analysis
-   * @param data Full command data
-   * @param offset Current parsing offset
-   * @returns CVK length in characters
-   */
-  private determineCVKLength(data: Buffer, offset: number): number {
-    // Heuristic: assume 32 hex characters for double-length DES
-    // In production, this would be determined by key length flags
-    return Math.min(32, data.length - offset - 10); // Reserve space for PAN, expiry, service code
-  }
-
-  /**
-   * Checks if CVK-B is present in the data
-   * @param data Full command data
-   * @param offset Current parsing offset
-   * @param cvkALength Length of CVK-A
-   * @returns true if CVK-B appears to be present
-   */
-  private hasCVKB(data: Buffer, offset: number, cvkALength: number): boolean {
-    // Check if there's enough data for another CVK plus minimum PAN/expiry/service
-    return data.length - offset > cvkALength + 10;
-  }
-
-  /**
-   * Finds the end of PAN by locating expiry date pattern
-   * @param data Full command data
-   * @param offset Current parsing offset
-   * @returns Offset where PAN ends
-   */
-  private findPANEnd(data: Buffer, offset: number): number {
-    // Look for 4-digit expiry pattern (all numeric digits)
-    for (let i = offset; i < data.length - 6; i++) {
-      const slice = data.subarray(i, i + 4);
-      if (this.isAllDigits(slice)) {
-        return i;
-      }
-    }
-    // Fallback: assume maximum PAN length
-    return Math.min(offset + 19, data.length - 7);
-  }
-
-  /**
-   * Checks if a buffer contains all numeric digits
-   * @param buffer Buffer to check
-   * @returns true if all characters are digits
-   */
-  private isAllDigits(buffer: Buffer): boolean {
-    const str = buffer.toString();
-    return /^\d{4}$/.test(str);
+    this.fields['Service Code'] = data.subarray(offset, offset + 3);
   }
 }
 

@@ -29,7 +29,7 @@ describe('Extended HSM Command Messages', () => {
     });
 
     it('should parse GC command with AES algorithm', () => {
-      const data = Buffer.from('021003A');
+      const data = Buffer.from('021003UA');
       const msg = new GCMessage(data);
       
       expect(msg.get('LMK-Id')?.toString()).toBe('02');
