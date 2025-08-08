@@ -122,12 +122,12 @@ describe('HSM Command Messages', () => {
 
   describe('CAMessage - Translate PIN from TPK to ZPK', () => {
     it('should parse complete CA command', () => {
-      const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEFUBEEFDEADBEEFDEADBEEFDEADBEEFDEADBE122B687AEFC34B1A89010200112345678901');
+      const data = Buffer.from('UDEADBEEFDEADBEEFDEADBEEFDEADBEEFUBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF122B687AEFC34B1A89010200112345678901');
       const msg = new CAMessage(data);
       
       expect(msg.getCommandCode().toString()).toBe('CA');
       expect(msg.get('TPK')?.toString()).toBe('UDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
-      expect(msg.get('Destination Key')?.toString()).toBe('UBEEFDEADBEEFDEADBEEFDEADBEEFDEADBE');
+      expect(msg.get('Destination Key')?.toString()).toBe('UBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
       expect(msg.get('Maximum PIN Length')?.toString()).toBe('12');
       expect(msg.get('Source PIN block')?.toString()).toBe('2B687AEFC34B1A89');
       expect(msg.get('Source PIN block format')?.toString()).toBe('01');
@@ -136,11 +136,11 @@ describe('HSM Command Messages', () => {
     });
 
     it('should handle CA command with T-prefixed keys', () => {
-      const data = Buffer.from('TDEADBEEFDEADBEEFDEADBEEFDEADBEEFTBEEFDEADBEEFDEADBEEFDEADBEEFDEADBE122B687AEFC34B1A89010200112345678901');
+      const data = Buffer.from('TDEADBEEFDEADBEEFDEADBEEFDEADBEEFTBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF122B687AEFC34B1A89010200112345678901');
       const msg = new CAMessage(data);
       
       expect(msg.get('TPK')?.toString()).toBe('TDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
-      expect(msg.get('Destination Key')?.toString()).toBe('TBEEFDEADBEEFDEADBEEFDEADBEEFDEADBE');
+      expect(msg.get('Destination Key')?.toString()).toBe('TBEEFDEADBEEFDEADBEEFDEADBEEFDEADBEEF');
     });
   });
 

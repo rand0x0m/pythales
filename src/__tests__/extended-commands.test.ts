@@ -5,7 +5,7 @@ import {
   GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
   DCComponentMessage, DMMessage, DOMessage, GTMessage, VMessage,
   KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
-} from '../messages/extended-commands';
+} from '../messages/commands';
 
 /**
  * Comprehensive tests for Extended HSM Commands

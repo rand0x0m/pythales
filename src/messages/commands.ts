@@ -1221,3 +1221,16 @@ export class KDMessage extends BaseMessage {
     }
   }
 }
+
+export {
+  // Core commands
+  A0Message, BUMessage, CAMessage, CWMessage, CYMessage,
+  DCMessage, ECMessage, FAMessage, HCMessage, NCMessage,
+  // Extended commands
+  GCMessage, GSMessage, FKMessage, KGMessage,
+  IKMessage, KEMessage, CKMessage, A6Message, EAMessage,
+  CVMessage, PVMessage, EDMessage, TDMessage, MIMessage,
+  GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
+  DMMessage, DOMessage, GTMessage, VMessage,
+  KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
+};

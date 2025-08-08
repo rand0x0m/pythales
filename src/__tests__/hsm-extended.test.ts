@@ -3,7 +3,7 @@ import { CryptoUtils } from '../utils/crypto';
 import { MessageUtils } from '../utils/message';
 import {
   GCMessage, A6Message, CKMessage, CVMessage, PVMessage, VTMessage
-} from '../messages/extended-commands';
+} from '../messages/commands';
 
 /**
  * Integration tests for Extended HSM Commands
