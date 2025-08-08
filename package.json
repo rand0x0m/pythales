@@ -21,7 +21,6 @@
   "author": "HSM Simulator",
   "license": "LGPL-2.1",
   "dependencies": {
-    "crypto": "^1.0.1",
     "winston": "^3.17.0"
   },
   "devDependencies": {

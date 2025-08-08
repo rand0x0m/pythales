@@ -8,14 +8,6 @@ import {
   A0Message, BUMessage, CAMessage, CWMessage, CYMessage,
   DCMessage, ECMessage, FAMessage, HCMessage, NCMessage
 } from './messages/commands';
-import {
-  GCMessage, GSMessage, ECMessage as ECComponentMessage, FKMessage, KGMessage,
-  IKMessage, KEMessage, CKMessage, A6Message, EAMessage,
-  CVMessage, PVMessage, EDMessage, TDMessage, MIMessage,
-  GKMessage, LKMessage, LOMessage, LNMessage, VTMessage,
-  DCComponentMessage, DMMessage, DOMessage, GTMessage, VMessage,
-  KMMessage, KNMessage, KTMessage, KKMessage, KDMessage
-} from './messages/extended-commands';
 
 /**
  * Thales HSM Simulator
