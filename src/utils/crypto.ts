@@ -33,7 +33,7 @@ export class CryptoUtils {
       for (let j = 1; j < 8; j++) {
         parity ^= (byte >> j) & 1;
       }
-      result[i] = (byte & 0xFE) | parity;
+      result[i] = (byte & 0xFE) | (parity ^ 1);
     }
     return result;
   }
