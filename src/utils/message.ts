@@ -1,6 +1,18 @@
 import { ParsedMessage } from '../types';
 
+/**
+ * Message parsing and formatting utilities for HSM communication
+ * Handles message length encoding, header validation, and hex tracing
+ */
 export class MessageUtils {
+  /**
+   * Parses an incoming HSM message
+   * Format: [2-byte length][optional header][2-byte command][data]
+   * @param data Complete message buffer including length prefix
+   * @param header Expected message header (optional)
+   * @returns Parsed command code and data
+   * @throws Error if message format is invalid
+   */
   static parseMessage(data: Buffer, header?: Buffer): ParsedMessage {
     if (!data || data.length < 2) {
       throw new Error('Invalid message data');
@@ -35,6 +47,13 @@ export class MessageUtils {
     return { commandCode, commandData };
   }
 
+  /**
+   * Builds an outgoing HSM response message
+   * @param header Optional message header
+   * @param responseCode 2-character response code
+   * @param fields Response fields to include
+   * @returns Complete message buffer with length prefix
+   */
   static buildMessage(header: Buffer | undefined, responseCode: string, fields: { [key: string]: Buffer }): Buffer {
     let data = Buffer.from(responseCode);
     
@@ -50,6 +69,11 @@ export class MessageUtils {
     return Buffer.concat([lengthBuffer, fullMessage]);
   }
 
+  /**
+   * Traces message data in hex dump format for debugging
+   * @param prefix Message direction indicator (e.g., "<<", ">>")
+   * @param data Message data to trace
+   */
   static trace(prefix: string, data: Buffer): void {
     const timestamp = new Date().toISOString().substring(11, 23);
     console.log(`${timestamp} ${prefix} ${data.length} bytes:`);

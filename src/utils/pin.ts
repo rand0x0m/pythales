@@ -1,6 +1,18 @@
 import { CryptoUtils } from './crypto';
 
+/**
+ * PIN and PVV utility functions for payment card operations
+ * Handles PIN block decryption, PVV generation/validation, and CVV operations
+ */
 export class PinUtils {
+  /**
+   * Extracts clear PIN from an encrypted PIN block
+   * Supports ISO Format 0 PIN blocks
+   * @param pinblock Decrypted PIN block buffer
+   * @param accountNumber Account number for validation
+   * @returns Clear PIN as string
+   * @throws Error if PIN format is invalid
+   */
   static getClearPin(pinblock: Buffer, accountNumber: Buffer): string {
     const pinblockHex = pinblock.toString('hex').toUpperCase();
     const accountHex = accountNumber.toString('hex').toUpperCase();
@@ -22,6 +34,15 @@ export class PinUtils {
     return pinDigits;
   }
 
+  /**
+   * Generates VISA PIN Verification Value (PVV)
+   * Used for offline PIN verification in payment systems
+   * @param accountNumber Primary account number
+   * @param pvki PIN Verification Key Indicator
+   * @param pin Clear PIN (first 4 digits used)
+   * @param pvkPair PIN Verification Key pair
+   * @returns 4-digit PVV as buffer
+   */
   static getVisaPVV(accountNumber: Buffer, pvki: Buffer, pin: string, pvkPair: Buffer): Buffer {
     // Simplified PVV calculation - in real implementation this would be more complex
     const account = accountNumber.toString('hex');
@@ -47,6 +68,15 @@ export class PinUtils {
     return Buffer.from(pvv.padEnd(4, '0'));
   }
 
+  /**
+   * Generates VISA Card Verification Value (CVV)
+   * Used for card-not-present transaction verification
+   * @param accountNumber Primary account number
+   * @param expiryDate Card expiry date (YYMM)
+   * @param serviceCode 3-digit service code
+   * @param cvk Card Verification Key
+   * @returns 3-digit CVV as string
+   */
   static getVisaCVV(accountNumber: Buffer, expiryDate: Buffer, serviceCode: Buffer, cvk: Buffer): string {
     // Simplified CVV calculation
     const account = accountNumber.toString('hex');

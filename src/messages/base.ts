@@ -1,27 +1,57 @@
 import { MessageField } from '../types';
 
+/**
+ * Base class for all HSM message types
+ * Provides common functionality for field management and tracing
+ */
 export abstract class BaseMessage {
+  /** Collection of parsed message fields */
   public fields: MessageField = {};
+  /** The command code for this message */
   public commandCode: Buffer;
+  /** Human-readable description of the command */
   public description: string;
 
+  /**
+   * Creates a new message instance
+   * @param commandCode 2-character command code
+   * @param description Human-readable command description
+   */
   constructor(commandCode: string, description: string) {
     this.commandCode = Buffer.from(commandCode);
     this.description = description;
   }
 
+  /**
+   * Retrieves a field value by name
+   * @param field Field name
+   * @returns Field value buffer or undefined if not found
+   */
   get(field: string): Buffer | undefined {
     return this.fields[field];
   }
 
+  /**
+   * Sets a field value
+   * @param field Field name
+   * @param value Field value buffer
+   */
   set(field: string, value: Buffer): void {
     this.fields[field] = value;
   }
 
+  /**
+   * Gets the command code for this message
+   * @returns Command code buffer
+   */
   getCommandCode(): Buffer {
     return this.commandCode;
   }
 
+  /**
+   * Generates a formatted trace of the message fields
+   * @returns Multi-line string showing all fields and values
+   */
   trace(): string {
     if (Object.keys(this.fields).length === 0) {
       return '';
@@ -45,23 +75,44 @@ export abstract class BaseMessage {
   }
 }
 
+/**
+ * Represents an outgoing HSM response message
+ * Handles response building and formatting
+ */
 export class OutgoingMessage extends BaseMessage {
+  /** Optional message header */
   private header?: Buffer;
 
+  /**
+   * Creates a new outgoing message
+   * @param header Optional message header
+   */
   constructor(header?: Buffer) {
     super('', '');
     this.header = header;
   }
 
+  /**
+   * Sets the response code for this message
+   * @param responseCode 2-character response code
+   */
   setResponseCode(responseCode: string): void {
     this.commandCode = Buffer.from(responseCode);
     this.fields['Response Code'] = Buffer.from(responseCode);
   }
 
+  /**
+   * Sets the error code for this message
+   * @param errorCode 2-character error code (00 = success)
+   */
   setErrorCode(errorCode: string): void {
     this.fields['Error Code'] = Buffer.from(errorCode);
   }
 
+  /**
+   * Builds the complete message buffer ready for transmission
+   * @returns Message buffer with length prefix and header
+   */
   build(): Buffer {
     let data = Buffer.alloc(0);
     for (const value of Object.values(this.fields)) {

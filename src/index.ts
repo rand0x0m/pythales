@@ -3,6 +3,10 @@
 import { HSM } from './hsm';
 import { HSMConfig } from './types';
 
+/**
+ * Displays help information for the HSM simulator CLI
+ * @param name Program name from command line
+ */
 function showHelp(name: string): void {
   console.log(`Usage: ${name} [OPTIONS]...`);
   console.log('Thales HSM command simulator');
@@ -15,6 +19,10 @@ function showHelp(name: string): void {
   console.log('  --help\t\t\tShow this help message');
 }
 
+/**
+ * Parses command line arguments into HSM configuration
+ * @returns Parsed configuration object
+ */
 function parseArgs(): HSMConfig {
   const config: HSMConfig = {};
   const args = process.argv.slice(2);
@@ -53,6 +61,10 @@ function parseArgs(): HSMConfig {
   return config;
 }
 
+/**
+ * Main entry point for the HSM simulator
+ * Parses arguments, creates HSM instance, and starts the server
+ */
 function main(): void {
   try {
     const config = parseArgs();
@@ -64,6 +76,7 @@ function main(): void {
   }
 }
 
+// Only run main if this file is executed directly
 if (require.main === module) {
   main();
 }

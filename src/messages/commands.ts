@@ -1,11 +1,19 @@
 import { BaseMessage } from './base';
 
+/**
+ * A0 Command: Generate a Key
+ * Generates cryptographic keys under LMK or ZMK encryption
+ */
 export class A0Message extends BaseMessage {
   constructor(data: Buffer) {
     super('A0', 'Generate a Key');
     this.parseData(data);
   }
 
+  /**
+   * Parses A0 command data
+   * Format: Mode(1) + KeyType(3) + KeyScheme(1) + [Delimiter + ZMKFlag(1) + ZMK(33)]
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -38,12 +46,20 @@ export class A0Message extends BaseMessage {
   }
 }
 
+/**
+ * BU Command: Generate a Key Check Value
+ * Calculates and returns a key check value for verification
+ */
 export class BUMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('BU', 'Generate a Key check value');
     this.parseData(data);
   }
 
+  /**
+   * Parses BU command data
+   * Format: KeyTypeCode(2) + KeyLengthFlag(1) + Key(33)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -59,12 +75,20 @@ export class BUMessage extends BaseMessage {
   }
 }
 
+/**
+ * DC Command: Verify PIN
+ * Verifies a PIN using TPK and PVK for offline validation
+ */
 export class DCMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('DC', 'Verify PIN');
     this.parseData(data);
   }
 
+  /**
+   * Parses DC command data
+   * Format: TPK(33) + PVKPair(32/33) + PINBlock(16) + Format(2) + Account(12) + PVKI(1) + PVV(4)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -100,12 +124,20 @@ export class DCMessage extends BaseMessage {
   }
 }
 
+/**
+ * CA Command: Translate PIN from TPK to ZPK
+ * Translates PIN blocks between different key encryptions
+ */
 export class CAMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('CA', 'Translate PIN from TPK to ZPK');
     this.parseData(data);
   }
 
+  /**
+   * Parses CA command data
+   * Format: TPK(33) + DestKey(33) + MaxPINLen(2) + PINBlock(16) + SrcFormat(2) + DestFormat(2) + Account(12)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -142,12 +174,20 @@ export class CAMessage extends BaseMessage {
   }
 }
 
+/**
+ * CY Command: Verify CVV/CSC
+ * Verifies card verification values for card-not-present transactions
+ */
 export class CYMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('CY', 'Verify CVV/CSC');
     this.parseData(data);
   }
 
+  /**
+   * Parses CY command data
+   * Format: CVK(33) + CVV(3) + PAN + ';' + ExpiryDate(4) + ServiceCode(3)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -179,12 +219,20 @@ export class CYMessage extends BaseMessage {
   }
 }
 
+/**
+ * CW Command: Generate a Card Verification Code
+ * Generates CVV values for payment cards
+ */
 export class CWMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('CW', 'Generate a Card Verification Code');
     this.parseData(data);
   }
 
+  /**
+   * Parses CW command data
+   * Format: CVK(33) + PAN + ';' + ExpiryDate(4) + ServiceCode(3)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -212,6 +260,10 @@ export class CWMessage extends BaseMessage {
   }
 }
 
+/**
+ * NC Command: Diagnostics Data
+ * Returns HSM diagnostic information including firmware version and LMK check value
+ */
 export class NCMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('NC', 'Diagnostics data');
@@ -219,12 +271,20 @@ export class NCMessage extends BaseMessage {
   }
 }
 
+/**
+ * EC Command: Verify an Interchange PIN using ABA PVV method
+ * Similar to DC but uses ZPK instead of TPK for PIN verification
+ */
 export class ECMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('EC', 'Verify an Interchange PIN using ABA PVV method');
     this.parseData(data);
   }
 
+  /**
+   * Parses EC command data
+   * Format: ZPK(33) + PVKPair(32/33) + PINBlock(16) + Format(2) + Account(12)/Token(18) + PVKI(1) + PVV(4)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -266,12 +326,20 @@ export class ECMessage extends BaseMessage {
   }
 }
 
+/**
+ * FA Command: Translate a ZPK from ZMK to LMK
+ * Translates zone PIN keys from zone master key to local master key encryption
+ */
 export class FAMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('FA', 'Translate a ZPK from ZMK to LMK');
     this.parseData(data);
   }
 
+  /**
+   * Parses FA command data
+   * Format: ZMK(33) + ZPK(33)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 
@@ -288,12 +356,20 @@ export class FAMessage extends BaseMessage {
   }
 }
 
+/**
+ * HC Command: Generate a TMK, TPK or PVK
+ * Generates terminal master keys, terminal PIN keys, or PIN verification keys
+ */
 export class HCMessage extends BaseMessage {
   constructor(data: Buffer) {
     super('HC', 'Generate a TMK, TPK or PVK');
     this.parseData(data);
   }
 
+  /**
+   * Parses HC command data
+   * Format: CurrentKey(16/33) + ';' + KeyScheme(TMK)(1) + KeyScheme(LMK)(1)
+   */
   private parseData(data: Buffer): void {
     let offset = 0;
 

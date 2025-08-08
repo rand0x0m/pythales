@@ -9,16 +9,40 @@ import {
   DCMessage, ECMessage, FAMessage, HCMessage, NCMessage
 } from './messages/commands';
 
+/**
+ * Thales HSM Simulator
+ * 
+ * Simulates a Thales Hardware Security Module for development and testing.
+ * Supports the most common HSM commands used in payment processing:
+ * - Key generation and management
+ * - PIN verification and translation
+ * - CVV generation and verification
+ * - Cryptographic operations
+ * 
+ * This is a SIMULATOR only - not suitable for production use with real keys.
+ */
 export class HSM {
+  /** HSM firmware version string */
   private readonly firmwareVersion = '0007-E000';
+  /** Message header expected in communications */
   private readonly header: Buffer;
+  /** Local Master Key for encrypting other keys */
   private readonly lmk: Buffer;
+  /** Debug mode flag for detailed logging */
   private readonly debug: boolean;
+  /** Skip key parity validation checks */
   private readonly skipParityCheck: boolean;
+  /** TCP port to listen on */
   private readonly port: number;
+  /** Approve all requests regardless of validation */
   private readonly approveAll: boolean;
+  /** TCP server instance */
   private server?: net.Server;
 
+  /**
+   * Creates a new HSM simulator instance
+   * @param config Configuration options
+   */
   constructor(config: HSMConfig = {}) {
     this.header = config.header ? Buffer.from(config.header) : Buffer.alloc(0);
     this.lmk = config.key ? Buffer.from(config.key, 'hex') : Buffer.from('deafbeedeafbeedeafbeedeafbeedeaf', 'hex');
@@ -36,6 +60,10 @@ export class HSM {
     }
   }
 
+  /**
+   * Initializes the TCP server for HSM communications
+   * @throws Error if server cannot be started
+   */
   private initConnection(): void {
     try {
       this.server = net.createServer();
@@ -48,12 +76,21 @@ export class HSM {
     }
   }
 
+  /**
+   * Outputs debug information if debug mode is enabled
+   * @param data Debug message to output
+   */
   private debugTrace(data: string): void {
     if (this.debug) {
       console.log(`\tDEBUG: ${data}\n`);
     }
   }
 
+  /**
+   * Validates key parity according to HSM standards
+   * @param key Key buffer to validate (may have 'U' prefix)
+   * @returns true if parity is valid or parity checking is disabled
+   */
   private checkKeyParity(key: Buffer): boolean {
     if (this.skipParityCheck) {
       return true;
@@ -64,6 +101,12 @@ export class HSM {
     return CryptoUtils.checkKeyParity(clearKey);
   }
 
+  /**
+   * Decrypts a PIN block using the provided terminal key
+   * @param encryptedPinblock Encrypted PIN block
+   * @param encryptedTerminalKey Terminal key (TPK/ZPK) encrypted under LMK
+   * @returns Decrypted PIN block
+   */
   private decryptPinblock(encryptedPinblock: Buffer, encryptedTerminalKey: Buffer): Buffer {
     const keyData = encryptedTerminalKey[0] === 0x55 ? 
       encryptedTerminalKey.subarray(1) : encryptedTerminalKey;
@@ -74,6 +117,11 @@ export class HSM {
     return Buffer.from(decryptedPinblock.toString('hex'), 'hex');
   }
 
+  /**
+   * Handles PIN verification for DC and EC commands
+   * @param request DC or EC message to process
+   * @returns Response message with verification result
+   */
   private verifyPin(request: DCMessage | ECMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
     const commandCode = request.getCommandCode().toString();
@@ -129,6 +177,11 @@ export class HSM {
     }
   }
 
+  /**
+   * Handles CVV verification for CY command
+   * @param request CY message to process
+   * @returns Response message with verification result
+   */
   private verifyCvv(request: CYMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
     response.setResponseCode('CZ');
@@ -160,6 +213,11 @@ export class HSM {
     return response;
   }
 
+  /**
+   * Handles CVV generation for CW command
+   * @param request CW message to process
+   * @returns Response message with generated CVV
+   */
   private generateCvv(request: CWMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
     response.setResponseCode('CX');
@@ -185,6 +243,10 @@ export class HSM {
     return response;
   }
 
+  /**
+   * Handles diagnostics request for NC command
+   * @returns Response message with HSM diagnostic information
+   */
   private getDiagnosticsData(): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
     response.setResponseCode('ND');
@@ -197,6 +259,11 @@ export class HSM {
     return response;
   }
 
+  /**
+   * Handles key check value generation for BU command
+   * @param request BU message to process
+   * @returns Response message with key check value
+   */
   private getKeyCheckValue(request: BUMessage): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
     response.setResponseCode('BV');
@@ -210,6 +277,11 @@ export class HSM {
     return response;
   }
 
+  /**
+   * Handles key generation for A0 command
+   * @param request A0 message to process
+   * @returns Response message with generated key
+   */
   private generateKeyA0(request: A0Message): OutgoingMessage {
     const response = new OutgoingMessage(this.header);
     response.setResponseCode('A1');
@@ -234,6 +306,11 @@ export class HSM {
     return response;
   }
 
+  /**
+   * Parses incoming message data into appropriate command objects
+   * @param data Raw message buffer
+   * @returns Parsed message object or null if unsupported
+   */
   private parseMessage(data: Buffer): BaseMessage | null {
     try {
       const { commandCode, commandData } = MessageUtils.parseMessage(data, this.header);
@@ -260,6 +337,11 @@ export class HSM {
     }
   }
 
+  /**
+   * Routes parsed messages to appropriate handler methods
+   * @param request Parsed message object
+   * @returns Response message
+   */
   private getResponse(request: BaseMessage): OutgoingMessage {
     const commandCode = request.getCommandCode().toString();
 
@@ -279,6 +361,10 @@ export class HSM {
     }
   }
 
+  /**
+   * Handles individual client connections
+   * @param socket Client socket connection
+   */
   private handleClient(socket: net.Socket): void {
     const clientName = `${socket.remoteAddress}:${socket.remotePort}`;
     console.log(`Connected client: ${clientName}`);
@@ -310,6 +396,10 @@ export class HSM {
     });
   }
 
+  /**
+   * Returns HSM configuration and status information
+   * @returns Multi-line info string
+   */
   public info(): string {
     let dump = '';
     dump += `LMK: ${this.lmk.toString('hex').toUpperCase()}\n`;
@@ -320,6 +410,10 @@ export class HSM {
     return dump;
   }
 
+  /**
+   * Starts the HSM simulator server
+   * Initializes TCP server and begins accepting client connections
+   */
   public run(): void {
     this.initConnection();
     console.log(this.info());
