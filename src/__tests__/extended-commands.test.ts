@@ -73,7 +73,7 @@ describe('Extended HSM Command Messages', () => {
 
   describe('ECMessage - Encrypt Clear Component', () => {
     it('should parse EC command', () => {
-      const data = Buffer.from('0121234567890ABCDEF1234567890ABCDEF');
+      const data = Buffer.from('01' + '2' + '1234567890ABCDEF1234567890ABCDEF');
       const msg = new ECMessage(data);
       
       expect(msg.getCommandCode().toString()).toBe('EC');
