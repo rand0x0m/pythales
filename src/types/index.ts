@@ -53,10 +53,83 @@ export interface HSMResponse {
  * Supported HSM command codes.
  * These represent the primary operations available in the HSM simulator.
  */
-export type CommandCode = 'A0' | 'BU' | 'CA' | 'CW' | 'CY' | 'DC' | 'EC' | 'FA' | 'HC' | 'NC';
+export type CommandCode = 
+  // Original commands
+  'A0' | 'BU' | 'CA' | 'CW' | 'CY' | 'DC' | 'EC' | 'FA' | 'HC' | 'NC' |
+  // Key generation and component commands
+  'GC' | 'GS' | 'FK' | 'KG' | 'IK' | 'KE' | 'CK' | 'A6' | 'EA' |
+  // Card verification commands
+  'CV' | 'PV' | 'ED' | 'TD' | 'MI' |
+  // LMK management commands
+  'GK' | 'LK' | 'LO' | 'LN' | 'VT' | 'DC' | 'DM' | 'DO' | 'GT' | 'V' |
+  // KMD (KTK) commands
+  'KM' | 'KN' | 'KT' | 'KK' | 'KD';
 
 /**
  * Corresponding response codes for HSM commands.
  * Each command has a specific response code that identifies the reply message type.
  */
-export type ResponseCode = 'A1' | 'BV' | 'CB' | 'CX' | 'CZ' | 'DD' | 'ED' | 'FB' | 'HD' | 'ND' | 'ZZ';
+export type ResponseCode = 
+  // Original response codes
+  'A1' | 'BV' | 'CB' | 'CX' | 'CZ' | 'DD' | 'ED' | 'FB' | 'HD' | 'ND' | 'ZZ' |
+  // New response codes
+  'GD' | 'GT' | 'FL' | 'KH' | 'IL' | 'KF' | 'CL' | 'A7' | 'EB' |
+  'DW' | 'QW' | 'EE' | 'TE' | 'MJ' |
+  'GL' | 'LL' | 'LP' | 'LQ' | 'WU' | 'DD' | 'DN' | 'DP' | 'GU' | 'W' |
+  'KN' | 'KO' | 'KU' | 'KL' | 'KE';
+
+/**
+ * LMK (Local Master Key) configuration and status information
+ */
+export interface LMKInfo {
+  /** LMK identifier (00-99) */
+  id: string;
+  /** LMK status (L=Live, T=Test, etc.) */
+  status: string;
+  /** Key scheme identifier */
+  scheme: string;
+  /** Key check value for verification */
+  kcv: string;
+  /** Optional comment/description */
+  comment?: string;
+}
+
+/**
+ * Key component information for multi-component key operations
+ */
+export interface KeyComponent {
+  /** Component identifier */
+  id: number;
+  /** Clear component value */
+  clear: Buffer;
+  /** Encrypted component value */
+  encrypted: Buffer;
+  /** Component key check value */
+  kcv: string;
+}
+
+/**
+ * Smart card configuration for component storage
+ */
+export interface SmartCard {
+  /** Card identifier */
+  id: string;
+  /** Card PIN for access */
+  pin: string;
+  /** Components stored on this card */
+  components: KeyComponent[];
+}
+
+/**
+ * KTK (Key Transport Key) table entry
+ */
+export interface KTKEntry {
+  /** KTK identifier */
+  id: string;
+  /** KTK status */
+  status: string;
+  /** Key check value */
+  kcv: string;
+  /** Creation timestamp */
+  created: Date;
+}
